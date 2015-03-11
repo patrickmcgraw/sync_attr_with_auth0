@@ -2,10 +2,6 @@ module SyncAttrWithAuth0
   module Model
     extend ::ActiveSupport::Concern
 
-    included do
-      after_save :sync_attr_with_auth0
-    end
-
     module ClassMethods
       def sync_attr_with_auth0(*args)
         class_attribute :auth0_uid_att
