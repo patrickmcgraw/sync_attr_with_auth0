@@ -8,16 +8,15 @@ module SyncAttrWithAuth0
 
     module ClassMethods
       def sync_attr_with_auth0(*args)
-        class << self
-          attr_reader :auth0_uid_att
-          attr_reader :auth0_sync_atts
-        end
+        class_attribute :auth0_uid_att
+        class_attribute :auth0_sync_atts
 
-        @auth0_sync_atts ||= []
+        self.auth0_uid_att = args.shift
 
-        @auth0_uid_att = args.shift
+        self.auth0_sync_atts ||= []
+        self.auth0_sync_atts += args.shift.collect(&:to_s)
 
-        @auth0_sync_atts += args.shift.collect(&:to_s)
+        after_save :sync_attr_with_auth0
       end
     end
 
@@ -47,6 +46,8 @@ module SyncAttrWithAuth0
             changes)
         end
       end
+
+      true # don't abort the callback chain
     end
 
   end
