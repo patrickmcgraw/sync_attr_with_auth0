@@ -1,6 +1,6 @@
 Gem::Specification.new do |gem|
   gem.name          = 'sync_attr_with_auth0'
-  gem.version       = '0.0.1'
+  gem.version       = '0.0.2'
   gem.date          = '2015-03-10'
   gem.summary       = "Synchronize attributes on a local ActiveRecord user model with the user metadata store on Auth0"
   gem.description   = gem.summary
@@ -20,5 +20,5 @@ Gem::Specification.new do |gem|
 
   gem.add_development_dependency 'rails', '>= 4.0.0'
   gem.add_development_dependency 'rspec-rails', '~> 3.0'
-  gem.add_development_dependency 'sqlite3', '~> 1.0'
+
 end
