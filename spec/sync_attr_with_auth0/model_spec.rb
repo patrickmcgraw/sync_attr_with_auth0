@@ -66,7 +66,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
   describe "#validate_email_with_auth0" do
 
     context "when suppressing validation" do
-      before { expect(test_model).to receive(:validate_with_auth0).and_return(false) }
+      before { expect(test_model).to receive(:validate_with_auth0).at_least(1).and_return(false) }
 
       it "returns true" do
         expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
@@ -122,7 +122,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
   describe "#create_user_in_auth0" do
     context "when suppressing sync on create" do
-      before { expect(test_model).to receive(:sync_with_auth0_on_create).and_return(false) }
+      before { expect(test_model).to receive(:sync_with_auth0_on_create).at_least(1).and_return(false) }
 
       it "returns true" do
         expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
@@ -167,7 +167,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
   describe "#sync_attr_with_auth0" do
 
     context "when suppressing sync on update" do
-      before { expect(test_model).to receive(:sync_with_auth0_on_update).and_return(false) }
+      before { expect(test_model).to receive(:sync_with_auth0_on_update).at_least(1).and_return(false) }
 
       it "returns true" do
         expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
