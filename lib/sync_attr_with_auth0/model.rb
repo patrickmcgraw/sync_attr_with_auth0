@@ -99,17 +99,18 @@ module SyncAttrWithAuth0
 
         password = auth0_user_password
         email_verified = auth0_email_verified?
+        args = {
+          'email' => self.send(email_att),
+          'password' => password,
+          'connection' => connection_name,
+          'email_verified' => true #email_verified
+        }.merge(changes)
 
         response = SyncAttrWithAuth0::Auth0.make_request(
           access_token,
           'post',
           "/api/users",
-          {
-            'email' => self.send(email_att),
-            'password' => password,
-            'connection' => connection_name,
-            'email_verified' => email_verified
-          }.merge(changes))
+          args)
 
         response = JSON.parse(response)
 
@@ -203,7 +204,7 @@ module SyncAttrWithAuth0
     end
 
     def auth0_email_verified?
-      self.respond_to?(email_verified_att) ? self.send(email_verified_att) : false
+      !!(self.respond_to?(email_verified_att) ? self.send(email_verified_att) : false)
     end
 
     def auth0_default_password

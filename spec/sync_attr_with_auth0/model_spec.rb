@@ -205,7 +205,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
             'email' => 'foo@email.com',
             'password' => 'some password',
             'connection' => 'Username-Password-Authentication',
-            'email_verified' => false,
+            'email_verified' => true,
             'name' => 'new name'
           }
         end
