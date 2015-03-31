@@ -40,7 +40,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
     def sync_with_auth0_on_create; return true; end;
     def sync_with_auth0_on_update; return true; end;
 
-    sync_attr_with_auth0 sync_atts: [:name, :email, :password, :undefined_attribute]
+    sync_attr_with_auth0 auth0_sync_atts: [:name, :email, :password, :undefined_attribute]
   end
 
   class TestModelWithoutPassword < TestModel
@@ -148,6 +148,16 @@ RSpec.describe SyncAttrWithAuth0::Model do
       end
     end
 
+    context "when the user already has a uid" do
+      before { expect(test_model).to receive(:uid).at_least(1).and_return('Some User ID') }
+
+      it "returns true" do
+        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
+
+        expect(test_model.create_user_in_auth0).to eql(true)
+      end
+    end
+
     context "when not suppressing sync on create" do
       before do
         expect(::SyncAttrWithAuth0::Auth0).to receive(:get_access_token).and_return('some access token')
@@ -205,7 +215,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
             'email' => 'foo@email.com',
             'password' => 'some password',
             'connection' => 'Username-Password-Authentication',
-            'email_verified' => true,
+            'email_verified' => false,
             'name' => 'new name'
           }
         end

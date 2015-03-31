@@ -7,21 +7,21 @@ module SyncAttrWithAuth0
     module ClassMethods
 
       def sync_attr_with_auth0(options = {})
-        class_attribute :uid_att
-        class_attribute :email_att
-        class_attribute :password_att
-        class_attribute :email_verified_att
-        class_attribute :connection_name
-        class_attribute :sync_atts
+        class_attribute :auth0_uid_att
+        class_attribute :auth0_email_att
+        class_attribute :auth0_password_att
+        class_attribute :auth0_email_verified_att
+        class_attribute :auth0_connection_name
+        class_attribute :auth0_sync_atts
 
         _options = merge_default_options(options)
 
-        self.uid_att = _options[:uid_att]
-        self.email_att = _options[:email_att]
-        self.password_att = _options[:password_att]
-        self.email_verified_att = _options[:email_verified_att]
-        self.connection_name = _options[:connection_name]
-        self.sync_atts = _options[:sync_atts].collect(&:to_s)
+        self.auth0_uid_att = _options[:auth0_uid_att]
+        self.auth0_email_att = _options[:auth0_email_att]
+        self.auth0_password_att = _options[:auth0_password_att]
+        self.auth0_email_verified_att = _options[:auth0_email_verified_att]
+        self.auth0_connection_name = _options[:auth0_connection_name]
+        self.auth0_sync_atts = _options[:auth0_sync_atts].collect(&:to_s)
 
         after_validation :validate_email_with_auth0
         after_create :create_user_in_auth0
@@ -32,12 +32,12 @@ module SyncAttrWithAuth0
 
       def merge_default_options(options)
         _options = {
-          uid_att: :uid,
-          email_att: :email,
-          password_att: :password,
-          email_verified_att: :email_verified,
-          connection_name: 'Username-Password-Authentication',
-          sync_atts: []
+          auth0_uid_att: :uid,
+          auth0_email_att: :email,
+          auth0_password_att: :password,
+          auth0_email_verified_att: :email_verified,
+          auth0_connection_name: 'Username-Password-Authentication',
+          auth0_sync_atts: []
         }
 
         _options.merge!(options)
@@ -73,13 +73,20 @@ module SyncAttrWithAuth0
 
       ok_to_sync = (self.respond_to?(:sync_with_auth0_on_create) and !self.sync_with_auth0_on_create.nil?  ? self.sync_with_auth0_on_create : true)
 
+      # Do not create a user in auth0 if the user already has a uid from auth0
+      if ok_to_sync
+        unless self.send(auth0_uid_att).nil? or self.send(auth0_uid_att).empty?
+          ok_to_sync = false
+        end
+      end
+
       if ok_to_sync
         # Get an access token
         access_token = SyncAttrWithAuth0::Auth0.get_access_token
 
         # Look for matches between what's changing
         # and what needs to be transmitted to Auth0
-        matches = ( (self.class.sync_atts || []) & (self.changes.keys || []) )
+        matches = ( (self.class.auth0_sync_atts || []) & (self.changes.keys || []) )
 
         # Figure out what needs to be sent to Auth0
         changes = {}
@@ -100,10 +107,10 @@ module SyncAttrWithAuth0
         password = auth0_user_password
         email_verified = auth0_email_verified?
         args = {
-          'email' => self.send(email_att),
+          'email' => self.send(auth0_email_att),
           'password' => password,
-          'connection' => connection_name,
-          'email_verified' => true #email_verified
+          'connection' => auth0_connection_name,
+          'email_verified' => email_verified
         }.merge(changes)
 
         response = SyncAttrWithAuth0::Auth0.make_request(
@@ -115,7 +122,7 @@ module SyncAttrWithAuth0
         response = JSON.parse(response)
 
         # Update the record with the uid
-        self.send("#{uid_att}=", response['user_id'])
+        self.send("#{auth0_uid_att}=", response['user_id'])
         self.save
       end
 
@@ -128,7 +135,7 @@ module SyncAttrWithAuth0
       if ok_to_sync
         # Look for matches between what's changing
         # and what needs to be transmitted to Auth0
-        matches = ( (self.class.sync_atts || []) & (self.changes.keys || []) )
+        matches = ( (self.class.auth0_sync_atts || []) & (self.changes.keys || []) )
 
         # If we find matches
         unless matches.empty?
@@ -145,7 +152,7 @@ module SyncAttrWithAuth0
           # If we actually have changes
           unless changes.empty?
             # Get the auth0 uid
-            uid = self.send(uid_att)
+            uid = self.send(auth0_uid_att)
 
             # Don't try to update auth0 if the user doesn't have a uid
             unless uid.nil?
@@ -165,7 +172,7 @@ module SyncAttrWithAuth0
                 response = JSON.parse(response)
 
                 # Update the record with the uid
-                self.send("#{uid_att}=", response['user_id'])
+                self.send("#{auth0_uid_att}=", response['user_id'])
                 self.save
               end
 
@@ -200,11 +207,11 @@ module SyncAttrWithAuth0
     end
 
     def auth0_user_password
-      self.respond_to?(password_att) ? self.send(password_att) : auth0_default_password
+      self.respond_to?(auth0_password_att) ? self.send(auth0_password_att) : auth0_default_password
     end
 
     def auth0_email_verified?
-      !!(self.respond_to?(email_verified_att) ? self.send(email_verified_att) : false)
+      !!(self.respond_to?(auth0_email_verified_att) ? self.send(auth0_email_verified_att) : false)
     end
 
     def auth0_default_password
