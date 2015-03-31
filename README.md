@@ -1,4 +1,5 @@
 # sync_attr_with_auth0
+[![Code Climate](https://codeclimate.com/github/patrickmcgraw/sync_attr_with_auth0/badges/gpa.svg)](https://codeclimate.com/github/patrickmcgraw/sync_attr_with_auth0)  [![Test Coverage](https://codeclimate.com/github/patrickmcgraw/sync_attr_with_auth0/badges/coverage.svg)](https://codeclimate.com/github/patrickmcgraw/sync_attr_with_auth0)
 Synchronize attributes on a local ActiveRecord user model with the user metadata store on Auth0.
 
 This gem will validate the email is unique on auth0, create the user on auth0, as well as keep the information you select up-to-date with auth0.
