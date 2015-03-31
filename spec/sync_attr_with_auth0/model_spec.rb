@@ -35,28 +35,45 @@ RSpec.describe SyncAttrWithAuth0::Model do
     def uid; end;
     def uid=(uid); end;
     def email; end;
-    def password; end;
-    def email_verified; end;
 
     def validate_with_auth0; return true; end;
     def sync_with_auth0_on_create; return true; end;
     def sync_with_auth0_on_update; return true; end;
 
-    sync_attr_with_auth0 sync_atts: [:name, :email, :password]
+    sync_attr_with_auth0 sync_atts: [:name, :email, :password, :undefined_attribute]
   end
 
-  let(:test_model) { TestModel.new }
+  class TestModelWithoutPassword < TestModel
+    def email_verified; end;
+
+    # sync_attr_with_auth0 sync_atts: [:name, :email]
+  end
+
+  class TestModelWithoutEmailVerified < TestModel
+    def password; end;
+
+    # sync_attr_with_auth0 sync_atts: [:name, :email]
+  end
+
+  class FullTestModel < TestModel
+    def password; end;
+    def email_verified; end;
+
+    # sync_attr_with_auth0 sync_atts: [:name, :email, :password]
+  end
+
+  let(:test_model) { FullTestModel.new }
 
   it "has #sync_attr_with_auth0 as an after_validation callback" do
-    expect(TestModel._after_validation).to eql([:validate_email_with_auth0])
+    expect(FullTestModel._after_validation).to eql([:validate_email_with_auth0])
   end
 
   it "has #sync_attr_with_auth0 as an after_create callback" do
-    expect(TestModel._after_create).to eql([:create_user_in_auth0])
+    expect(FullTestModel._after_create).to eql([:create_user_in_auth0])
   end
 
   it "has #sync_attr_with_auth0 as an after_update callback" do
-    expect(TestModel._after_update).to eql([:sync_attr_with_auth0])
+    expect(FullTestModel._after_update).to eql([:sync_attr_with_auth0])
   end
 
   it "responds to #sync_attr_with_auth0" do
@@ -137,15 +154,10 @@ RSpec.describe SyncAttrWithAuth0::Model do
         expect(test_model).to receive(:changes).and_return( {'name' => [nil, 'is'], 'email' => [nil, 'foo@email.com'], 'password' => [nil, 'some password']} )
         expect(test_model).to receive(:name).and_return('new name')
         expect(test_model).to receive(:email).twice.and_return('foo@email.com')
-        expect(test_model).to receive(:password).twice.and_return('some password')
-        expect(test_model).to receive(:email_verified).and_return(true)
       end
 
-      it "should add the user to auth0 and update the local user with the auth0 user id" do
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-          'some access token',
-          'post',
-          '/api/users',
+      context "when password and email_verified are defined on the model" do
+        let(:mock_user_data) do
           {
             'email' => 'foo@email.com',
             'password' => 'some password',
@@ -153,6 +165,67 @@ RSpec.describe SyncAttrWithAuth0::Model do
             'email_verified' => true,
             'name' => 'new name'
           }
+        end
+
+        before do
+          expect(test_model).to receive(:password).twice.and_return('some password')
+          expect(test_model).to receive(:email_verified).and_return(true)
+        end
+
+        it "should add the user to auth0 and update the local user with the auth0 user id" do
+          # Do Nothing (test performed by after block)
+        end
+      end
+
+      context "when password is not defined on the model" do
+        let(:mock_user_data) do
+          {
+            'email' => 'foo@email.com',
+            'password' => 'default password',
+            'connection' => 'Username-Password-Authentication',
+            'email_verified' => true,
+            'name' => 'new name'
+          }
+        end
+        let(:test_model) { TestModelWithoutPassword.new }
+
+        before do
+          expect(test_model).to receive(:email_verified).and_return(true)
+          expect(test_model).to receive(:auth0_default_password).and_return('default password')
+        end
+
+        it "should add the user to auth0 with a default password and update the local user with the auth0 user id" do
+          # Do Nothing (test performed by after block)
+        end
+      end
+
+      context "when email_verified is not defined on the model" do
+        let(:mock_user_data) do
+          {
+            'email' => 'foo@email.com',
+            'password' => 'some password',
+            'connection' => 'Username-Password-Authentication',
+            'email_verified' => false,
+            'name' => 'new name'
+          }
+        end
+        let(:test_model) { TestModelWithoutEmailVerified.new }
+
+        before do
+          expect(test_model).to receive(:password).twice.and_return('some password')
+        end
+
+        it "should add the user to auth0 with a default email_verified and update the local user with the auth0 user id" do
+          # Do Nothing (test performed by after block)
+        end
+      end
+
+      after do
+        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
+          'some access token',
+          'post',
+          '/api/users',
+          mock_user_data
         ).and_return('{"user_id":"auth0|user_id"}')
 
         expect(test_model).to receive(:uid=).with('auth0|user_id')
@@ -219,7 +292,10 @@ RSpec.describe SyncAttrWithAuth0::Model do
           'put',
           '/api/users/the%20uid/email',
           { 'email' => 'new email', 'verify' => false }
-        )
+        ).and_return('{"user_id":"auth0|user_id"}')
+
+        expect(test_model).to receive(:uid=).with('auth0|user_id')
+        expect(test_model).to receive(:save).and_return(true)
 
         expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
           'some access token',

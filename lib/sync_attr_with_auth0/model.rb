@@ -2,6 +2,8 @@ module SyncAttrWithAuth0
   module Model
     extend ::ActiveSupport::Concern
 
+    require "uuidtools"
+
     module ClassMethods
 
       def sync_attr_with_auth0(options = {})
@@ -82,7 +84,7 @@ module SyncAttrWithAuth0
         # Figure out what needs to be sent to Auth0
         changes = {}
         matches.each do |m|
-          changes[m] = self.send(m)
+          changes[m] = self.send(m) if self.respond_to?(m)
         end
 
         unless changes['email'].nil?
@@ -95,15 +97,18 @@ module SyncAttrWithAuth0
           changes.delete('password')
         end
 
+        password = auth0_user_password
+        email_verified = auth0_email_verified?
+
         response = SyncAttrWithAuth0::Auth0.make_request(
           access_token,
           'post',
           "/api/users",
           {
             'email' => self.send(email_att),
-            'password' => self.send(password_att),
+            'password' => password,
             'connection' => connection_name,
-            'email_verified' => self.send(email_verified_att)
+            'email_verified' => email_verified
           }.merge(changes))
 
         response = JSON.parse(response)
@@ -155,6 +160,12 @@ module SyncAttrWithAuth0
                     'email' => email,
                     'verify' => false # If the user were to fail to verify it would create a discrepency between auth0 and the local database
                   })
+
+                response = JSON.parse(response)
+
+                # Update the record with the uid
+                self.send("#{uid_att}=", response['user_id'])
+                self.save
               end
 
               # Determine if the password was changed
@@ -185,6 +196,23 @@ module SyncAttrWithAuth0
       end
 
       true # don't abort the callback chain
+    end
+
+    def auth0_user_password
+      self.respond_to?(password_att) ? self.send(password_att) : auth0_default_password
+    end
+
+    def auth0_email_verified?
+      self.respond_to?(email_verified_att) ? self.send(email_verified_att) : false
+    end
+
+    def auth0_default_password
+      # Need a9 or something similar to guarantee one letter and one number in the password
+      "#{auth0_new_uuid[0..19]}a9"
+    end
+
+    def auth0_new_uuid
+      ::UUIDTools::UUID.random_create().to_s
     end
 
   end
