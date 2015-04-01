@@ -11,28 +11,28 @@ This gem will validate the email is unique on auth0, create the user on auth0, a
 
 ### Options
 
-**uid_att** (default = :uid)
+**auth0_uid_att** (default = :uid)
 :   A symbol of the attribute containing the auth0 user id.
 
-**email_att** (default = :email)
+**auth0_email_att** (default = :email)
 :   A symbol of the attribute containing the email address.
 
-**password_att** (default = :password)
+**auth0_password_att** (default = :password)
 :   A symbol of the attribute containing the password.
 
-**email_verified_att** (default = :email_verified)
+**auth0_email_verified_att** (default = :email_verified)
 :   A symbol of the attribute containing if the email has been verified.
 
-**connection_name** (default = 'Username-Password-Authentication')
+**auth0_connection_name** (default = 'Username-Password-Authentication')
 :   A string containing the database connection name.
 
-**sync_atts** (default = [])
+**auth0_sync_atts** (default = [])
 :   An array of symbols of the attributes to sync with auth0.
 
 ### Example
 ``` ruby
 class User < ActiveRecord::Base
-  sync_attr_with_auth0 uid_att: :auth0_uid, sync_atts: [:first_name, :last_name, :email]
+  sync_attr_with_auth0 auth0_uid_att: :auth0_uid, auth0_sync_atts: [:first_name, :last_name, :email]
 end
 ```
 
