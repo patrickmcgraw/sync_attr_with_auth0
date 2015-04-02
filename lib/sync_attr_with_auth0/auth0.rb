@@ -1,37 +1,42 @@
 module SyncAttrWithAuth0
   module Auth0
+    require "auth0"
+    require "uuidtools"
 
-    def self.get_access_token
+    def self.create_auth0_jwt(global_client_id: ENV['AUTH0_GLOBAL_CLIENT_ID'], global_client_secret: ENV['AUTH0_GLOBAL_CLIENT_SECRET'])
       payload = {
-        "client_id" =>        ENV['AUTH0_CLIENT_ID'],
-        "client_secret" =>    ENV['AUTH0_CLIENT_SECRET'],
-        "grant_type" =>       "client_credentials"
+        'aud' => global_client_id,
+        'scopes' => {
+          'users' => {
+            'actions' => ['create', 'update', 'read']
+          }
+        },
+        'iat' => Time.now.to_i,
+        'jti' => UUIDTools::UUID.timestamp_create.to_s
       }
 
-      response = SyncAttrWithAuth0::Auth0.make_request(nil, 'post', '/oauth/token', payload)
+      jwt = JWT.encode(payload, JWT.base64url_decode(global_client_secret))
 
-      response = JSON.parse( response.to_s ) unless response.nil? or response.to_s.empty?
-
-      response['access_token']
+      return jwt
     end
 
-    def self.make_request(access_token, method, path, payload=nil)
-      args = [method, "https://#{ENV['AUTH0_DOMAIN']}#{path}"]
-
-      # The post body wedges in between the request url
-      # and the request headers for POST and PUT methods
-      args << payload if payload
-
-      if access_token
-        args << { content_type: :json, authorization: "Bearer #{access_token}", accept: "application/json" }
-
-      else
-        args << { content_type: :json, accept: "application/json" }
-
+    def self.create_auth0_client(
+      api_version: 2,
+      global_client_id: ENV['AUTH0_GLOBAL_CLIENT_ID'],
+      global_client_secret: ENV['AUTH0_GLOBAL_CLIENT_SECRET'],
+      client_id: ENV['AUTH0_CLIENT_ID'],
+      client_secret: ENV['AUTH0_CLIENT_SECRET'],
+      namespace: ENV['AUTH0_DOMAIN']
+    )
+      case api_version
+      when 1
+        auth0 = Auth0Client.new(client_id: client_id, client_secret: client_secret, namespace: namespace)
+      when 2
+        jwt = SyncAttrWithAuth0::Auth0.create_auth0_jwt(global_client_id: global_client_id, global_client_secret: global_client_secret)
+        auth0 = Auth0Client.new(api_version: 2, access_token: jwt, namespace: namespace)
       end
 
-      # Handle variable length arg lists
-      _response = RestClient.send(*args)
+      return auth0
     end
 
   end

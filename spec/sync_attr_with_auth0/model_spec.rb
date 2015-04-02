@@ -32,37 +32,35 @@ RSpec.describe SyncAttrWithAuth0::Model do
     def save; end;
 
     def name; end;
+    def given_name; end;
+    def family_name; end;
     def uid; end;
     def uid=(uid); end;
     def email; end;
+    def foo; end;
 
     def validate_with_auth0; return true; end;
     def sync_with_auth0_on_create; return true; end;
     def sync_with_auth0_on_update; return true; end;
 
-    sync_attr_with_auth0 auth0_sync_atts: [:name, :email, :password, :undefined_attribute]
+    sync_attr_with_auth0 sync_atts: [:name, :email, :password, :foo, :undefined_attribute]
   end
 
   class TestModelWithoutPassword < TestModel
     def email_verified; end;
-
-    # sync_attr_with_auth0 sync_atts: [:name, :email]
   end
 
   class TestModelWithoutEmailVerified < TestModel
     def password; end;
-
-    # sync_attr_with_auth0 sync_atts: [:name, :email]
   end
 
   class FullTestModel < TestModel
     def password; end;
     def email_verified; end;
-
-    # sync_attr_with_auth0 sync_atts: [:name, :email, :password]
   end
 
   let(:test_model) { FullTestModel.new }
+  let (:mock_auth0_client) { double(Object) }
 
   it "has #sync_attr_with_auth0 as an after_validation callback" do
     expect(FullTestModel._after_validation).to eql([:validate_email_with_auth0])
@@ -80,13 +78,14 @@ RSpec.describe SyncAttrWithAuth0::Model do
     expect(test_model.respond_to?(:sync_attr_with_auth0)).to eql(true)
   end
 
+
   describe "#validate_email_with_auth0" do
 
     context "when suppressing validation" do
       before { expect(test_model).to receive(:validate_with_auth0).at_least(1).and_return(false) }
 
       it "returns true" do
-        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
+        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:create_auth0_client)
 
         expect(test_model.validate_email_with_auth0).to eql(true)
       end
@@ -96,7 +95,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
       before { expect(test_model).to receive(:email_changed?).and_return(false) }
 
       it "returns true" do
-        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
+        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:create_auth0_client)
 
         expect(test_model.validate_email_with_auth0).to eql(true)
       end
@@ -105,17 +104,13 @@ RSpec.describe SyncAttrWithAuth0::Model do
     context "when the email is being changed" do
       before do
         expect(test_model).to receive(:email_changed?).and_return(true)
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:get_access_token).and_return('some access token')
+        expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
         expect(test_model).to receive(:email).and_return('bar@email.com')
       end
 
       context "when the new email does not exist in auth0" do
         it "should return true" do
-          expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-            'some access token',
-            'get',
-            '/api/users?search=email:bar@email.com'
-          ).and_return('[]')
+          expect(mock_auth0_client).to receive(:users).with('email:bar@email.com').and_return([])
 
           expect(test_model.validate_email_with_auth0).to eql(true)
         end
@@ -123,11 +118,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
       context "when the new email does exist in auth0" do
         it "should return false" do
-          expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-            'some access token',
-            'get',
-            '/api/users?search=email:bar@email.com'
-          ).and_return('["some results!"]')
+          expect(mock_auth0_client).to receive(:users).with('email:bar@email.com').and_return(['a result!'])
 
           expect(test_model.validate_email_with_auth0).to eql(false)
         end
@@ -136,13 +127,12 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
   end
 
-
   describe "#create_user_in_auth0" do
     context "when suppressing sync on create" do
       before { expect(test_model).to receive(:sync_with_auth0_on_create).at_least(1).and_return(false) }
 
       it "returns true" do
-        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
+        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:create_auth0_client)
 
         expect(test_model.create_user_in_auth0).to eql(true)
       end
@@ -152,7 +142,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
       before { expect(test_model).to receive(:uid).at_least(1).and_return('Some User ID') }
 
       it "returns true" do
-        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
+        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:create_auth0_client)
 
         expect(test_model.create_user_in_auth0).to eql(true)
       end
@@ -160,10 +150,9 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
     context "when not suppressing sync on create" do
       before do
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:get_access_token).and_return('some access token')
-        expect(test_model).to receive(:changes).and_return( {'name' => [nil, 'is'], 'email' => [nil, 'foo@email.com'], 'password' => [nil, 'some password']} )
+        expect(test_model).to receive(:auth0_user_metadata).and_return( {'foo' => 'bar'} )
         expect(test_model).to receive(:name).and_return('new name')
-        expect(test_model).to receive(:email).twice.and_return('foo@email.com')
+        expect(test_model).to receive(:email).and_return('foo@email.com')
       end
 
       context "when password and email_verified are defined on the model" do
@@ -173,12 +162,12 @@ RSpec.describe SyncAttrWithAuth0::Model do
             'password' => 'some password',
             'connection' => 'Username-Password-Authentication',
             'email_verified' => true,
-            'name' => 'new name'
+            'user_metadata' => { 'foo' => 'bar' }
           }
         end
 
         before do
-          expect(test_model).to receive(:password).twice.and_return('some password')
+          expect(test_model).to receive(:password).and_return('some password')
           expect(test_model).to receive(:email_verified).and_return(true)
         end
 
@@ -194,7 +183,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
             'password' => 'default password',
             'connection' => 'Username-Password-Authentication',
             'email_verified' => true,
-            'name' => 'new name'
+            'user_metadata' => { 'foo' => 'bar' }
           }
         end
         let(:test_model) { TestModelWithoutPassword.new }
@@ -216,13 +205,13 @@ RSpec.describe SyncAttrWithAuth0::Model do
             'password' => 'some password',
             'connection' => 'Username-Password-Authentication',
             'email_verified' => false,
-            'name' => 'new name'
+            'user_metadata' => { 'foo' => 'bar' }
           }
         end
         let(:test_model) { TestModelWithoutEmailVerified.new }
 
         before do
-          expect(test_model).to receive(:password).twice.and_return('some password')
+          expect(test_model).to receive(:password).and_return('some password')
         end
 
         it "should add the user to auth0 with a default email_verified and update the local user with the auth0 user id" do
@@ -231,12 +220,8 @@ RSpec.describe SyncAttrWithAuth0::Model do
       end
 
       after do
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-          'some access token',
-          'post',
-          '/api/users',
-          mock_user_data
-        ).and_return('{"user_id":"auth0|user_id"}')
+        expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
+        expect(mock_auth0_client).to receive(:create_user).with('new name', mock_user_data).and_return({ 'user_id' => 'auth0|user_id' })
 
         expect(test_model).to receive(:uid=).with('auth0|user_id')
         expect(test_model).to receive(:save).and_return(true)
@@ -246,100 +231,53 @@ RSpec.describe SyncAttrWithAuth0::Model do
     end
   end
 
-
   describe "#sync_attr_with_auth0" do
 
     context "when suppressing sync on update" do
       before { expect(test_model).to receive(:sync_with_auth0_on_update).at_least(1).and_return(false) }
 
       it "returns true" do
-        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
+        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:create_auth0_client)
 
         expect(test_model.sync_attr_with_auth0).to eql(true)
       end
     end
 
-    context "when there are no changes" do
-      before { expect(test_model).to receive(:changes).and_return( {'not_name' => ['was', 'is']} ) }
+    context "when there is no uid on the user" do
+      before { expect(test_model).to receive(:uid).and_return(nil) }
 
-      it "does nothing" do
-        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:get_access_token)
+      it "returns true" do
+        expect(::SyncAttrWithAuth0::Auth0).not_to receive(:create_auth0_client)
 
         expect(test_model.sync_attr_with_auth0).to eql(true)
       end
     end
 
-    context "when there are changes" do
-      before { expect(test_model).to receive(:changes).and_return( {'name' => ['was', 'is']} ) }
+    context "when there is a uid on the user" do
+      let(:mock_user_data) do
+        {
+          'app_metadata' => {
+            'name' => 'John Doe',
+            'nickname' => 'John Doe',
+            'given_name' => 'John',
+            'family_name' => 'Doe'
+          },
+          'user_metadata' => { 'foo' => 'bar' }
+        }
+      end
 
-      it "does nothing" do
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:get_access_token).and_return('some access token')
-        expect(test_model).to receive(:name).and_return('new name')
+      before do
         expect(test_model).to receive(:uid).and_return('the uid')
+        expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
+        expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
 
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-          'some access token',
-          'patch',
-          '/api/users/the%20uid/metadata',
-          { 'name' => 'new name' }
-        )
-
-        expect(test_model.sync_attr_with_auth0).to eql(true)
+        expect(test_model).to receive(:name).twice.and_return('John Doe')
+        expect(test_model).to receive(:given_name).and_return('John')
+        expect(test_model).to receive(:family_name).and_return('Doe')
       end
-    end
 
-    context "when the email is also changed" do
-      before { expect(test_model).to receive(:changes).and_return( {'name' => ['was', 'is'], 'email' => ['was', 'is']} ) }
-
-      it "does nothing" do
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:get_access_token).and_return('some access token')
-        expect(test_model).to receive(:name).and_return('new name')
-        expect(test_model).to receive(:email).and_return('new email')
-        expect(test_model).to receive(:uid).and_return('the uid')
-
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-          'some access token',
-          'put',
-          '/api/users/the%20uid/email',
-          { 'email' => 'new email', 'verify' => false }
-        ).and_return('{"user_id":"auth0|user_id"}')
-
-        expect(test_model).to receive(:uid=).with('auth0|user_id')
-        expect(test_model).to receive(:save).and_return(true)
-
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-          'some access token',
-          'patch',
-          '/api/users/the%20uid/metadata',
-          { 'name' => 'new name' }
-        )
-
-        expect(test_model.sync_attr_with_auth0).to eql(true)
-      end
-    end
-
-    context "when the password is changed" do
-      before { expect(test_model).to receive(:changes).and_return( {'name' => ['was', 'is'], 'password' => ['was', 'is']} ) }
-
-      it "does nothing" do
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:get_access_token).and_return('some access token')
-        expect(test_model).to receive(:name).and_return('new name')
-        expect(test_model).to receive(:password).and_return('new password')
-        expect(test_model).to receive(:uid).and_return('the uid')
-
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-          'some access token',
-          'put',
-          '/api/users/the%20uid/password',
-          { 'password' => 'new password', 'verify' => true }
-        )
-
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:make_request).with(
-          'some access token',
-          'patch',
-          '/api/users/the%20uid/metadata',
-          { 'name' => 'new name' }
-        )
+      it "updates the information in auth0 and returns true" do
+        expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data)
 
         expect(test_model.sync_attr_with_auth0).to eql(true)
       end
