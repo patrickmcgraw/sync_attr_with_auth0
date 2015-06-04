@@ -27,6 +27,7 @@ module SyncAttrWithAuth0
           email_att: :email,
           password_att: :password,
           email_verified_att: :email_verified,
+          verify_password_att: :verify_password,
           connection_name: 'Username-Password-Authentication',
           sync_atts: []
         }
@@ -113,6 +114,15 @@ module SyncAttrWithAuth0
             }
           }
 
+          if (
+            auth0_sync_options[:sync_atts].index(auth0_sync_options[:password_att]) and
+            self.send("#{auth0_sync_options[:password_att]}_changed?")
+          )
+            # The password should be sync'd and was changed
+            args['password'] = self.send(auth0_sync_options[:password_att])
+            args['verify_password'] = auth0_verify_password?
+          end
+
           args['user_metadata'] = user_metadata
 
           response = auth0.patch_user(uid, args)
@@ -129,6 +139,10 @@ module SyncAttrWithAuth0
 
     def auth0_email_verified?
       !!(self.respond_to?(auth0_sync_options[:email_verified_att]) ? self.send(auth0_sync_options[:email_verified_att]) : false)
+    end
+
+    def auth0_verify_password?
+      !!(self.respond_to?(auth0_sync_options[:verify_password_att]) ? self.send(auth0_sync_options[:verify_password_att]) : true)
     end
 
     def auth0_default_password

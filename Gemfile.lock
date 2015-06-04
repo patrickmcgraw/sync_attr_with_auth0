@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sync_attr_with_auth0 (0.0.13)
+    sync_attr_with_auth0 (0.0.14)
       activerecord (>= 4.0.0)
       activesupport (>= 4.0.0)
       auth0

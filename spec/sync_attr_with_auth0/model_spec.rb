@@ -29,6 +29,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
     def changes; end;
     def email_changed?; end;
+    def password_changed?; end;
     def save; end;
 
     def name; end;
@@ -57,6 +58,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
   class FullTestModel < TestModel
     def password; end;
     def email_verified; end;
+    def verify_password; end;
   end
 
   let(:test_model) { FullTestModel.new }
@@ -254,32 +256,72 @@ RSpec.describe SyncAttrWithAuth0::Model do
     end
 
     context "when there is a uid on the user" do
-      let(:mock_user_data) do
-        {
-          'app_metadata' => {
-            'name' => 'John Doe',
-            'nickname' => 'John Doe',
-            'given_name' => 'John',
-            'family_name' => 'Doe'
-          },
-          'user_metadata' => { 'foo' => 'bar' }
-        }
+      context "when password is not being updated" do
+        let(:mock_user_data) do
+          {
+            'app_metadata' => {
+              'name' => 'John Doe',
+              'nickname' => 'John Doe',
+              'given_name' => 'John',
+              'family_name' => 'Doe'
+            },
+            'user_metadata' => { 'foo' => 'bar' }
+          }
+        end
+
+        before do
+          expect(test_model).to receive(:uid).and_return('the uid')
+          expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
+          expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
+
+          expect(test_model).to receive(:name).twice.and_return('John Doe')
+          expect(test_model).to receive(:given_name).and_return('John')
+          expect(test_model).to receive(:family_name).and_return('Doe')
+
+          expect(test_model).to receive(:password_changed?).and_return(false)
+        end
+
+        it "updates the information in auth0 and returns true" do
+          expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data)
+
+          expect(test_model.sync_attr_with_auth0).to eql(true)
+        end
       end
 
-      before do
-        expect(test_model).to receive(:uid).and_return('the uid')
-        expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
-        expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
+      context "when password is being updated" do
+        let(:mock_user_data) do
+          {
+            'app_metadata' => {
+              'name' => 'John Doe',
+              'nickname' => 'John Doe',
+              'given_name' => 'John',
+              'family_name' => 'Doe'
+            },
+            'password' => 'new password',
+            'verify_password' => true,
+            'user_metadata' => { 'foo' => 'bar' }
+          }
+        end
 
-        expect(test_model).to receive(:name).twice.and_return('John Doe')
-        expect(test_model).to receive(:given_name).and_return('John')
-        expect(test_model).to receive(:family_name).and_return('Doe')
-      end
+        before do
+          expect(test_model).to receive(:uid).and_return('the uid')
+          expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
+          expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
 
-      it "updates the information in auth0 and returns true" do
-        expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data)
+          expect(test_model).to receive(:name).twice.and_return('John Doe')
+          expect(test_model).to receive(:given_name).and_return('John')
+          expect(test_model).to receive(:family_name).and_return('Doe')
 
-        expect(test_model.sync_attr_with_auth0).to eql(true)
+          expect(test_model).to receive(:password_changed?).and_return(true)
+          expect(test_model).to receive(:password).and_return('new password')
+          expect(test_model).to receive(:verify_password).and_return(true)
+        end
+
+        it "updates the information in auth0 and returns true" do
+          expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data)
+
+          expect(test_model.sync_attr_with_auth0).to eql(true)
+        end
       end
     end
 
