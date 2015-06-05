@@ -278,7 +278,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
           expect(test_model).to receive(:given_name).and_return('John')
           expect(test_model).to receive(:family_name).and_return('Doe')
 
-          expect(test_model).to receive(:password_changed?).and_return(false)
+          expect(test_model).to receive(:password).and_return(nil)
         end
 
         it "updates the information in auth0 and returns true" do
@@ -312,8 +312,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
           expect(test_model).to receive(:given_name).and_return('John')
           expect(test_model).to receive(:family_name).and_return('Doe')
 
-          expect(test_model).to receive(:password_changed?).and_return(true)
-          expect(test_model).to receive(:password).and_return('new password')
+          expect(test_model).to receive(:password).twice.and_return('new password')
           expect(test_model).to receive(:verify_password).and_return(true)
         end
 
