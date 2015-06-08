@@ -152,7 +152,7 @@ module SyncAttrWithAuth0
 
     def auth0_default_password
       # Need a9 or something similar to guarantee one letter and one number in the password
-      "#{auth0_new_uuid[0..19]}a9"
+      "#{auth0_new_uuid[0..19]}aA9"
     end
 
     def auth0_new_uuid
