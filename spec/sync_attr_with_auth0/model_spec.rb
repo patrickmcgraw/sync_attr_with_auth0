@@ -173,7 +173,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
       before { expect(test_model).to receive(:uid).and_return(nil) }
 
       it "returns true" do
-        expect(test_model).to receive(:create_user_in_auth0)
+        expect(test_model).to_not receive(:update_user_in_auth0)
 
         expect(test_model.auth0_update).to eql(true)
       end
@@ -183,7 +183,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
       before { expect(test_model).to receive(:uid).and_return('some uid') }
 
       it "returns true" do
-        expect(test_model).to receive(:update_user_in_auth0)
+        expect(test_model).to receive(:update_user_in_auth0).with('some uid')
 
         expect(test_model.auth0_update).to eql(true)
       end
@@ -216,6 +216,28 @@ RSpec.describe SyncAttrWithAuth0::Model do
       end
 
       it "should add the user to auth0 and update the local user with the auth0 user id" do
+        # Do Nothing (test performed by after block)
+      end
+    end
+
+    context "when the password is defined on the model, but is nil" do
+      let(:mock_user_data) do
+        {
+          'email' => 'foo@email.com',
+          'password' => 'default-password',
+          'connection' => 'Username-Password-Authentication',
+          'email_verified' => true,
+          'user_metadata' => { 'foo' => 'bar' }
+        }
+      end
+
+      before do
+        expect(test_model).to receive(:password).and_return(nil)
+        expect(test_model).to receive(:auth0_default_password).and_return('default-password')
+        expect(test_model).to receive(:email_verified).and_return(true)
+      end
+
+      it "should add the user to auth0 with a default password and update the local user with the auth0 user id" do
         # Do Nothing (test performed by after block)
       end
     end
@@ -291,7 +313,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
       end
 
       before do
-        expect(test_model).to receive(:uid).and_return('the uid')
+        # expect(test_model).to receive(:uid).and_return('the uid')
         expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
         expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
 
@@ -304,9 +326,9 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
       it "updates the information in auth0 and returns true" do
         expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data).and_return(mock_response)
-        expect(mock_response).to receive(:code).and_return(200)
+        # expect(mock_response).to receive(:code).and_return(200)
 
-        test_model.update_user_in_auth0
+        test_model.update_user_in_auth0('the uid')
       end
     end
 
@@ -326,7 +348,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
       end
 
       before do
-        expect(test_model).to receive(:uid).and_return('the uid')
+        # expect(test_model).to receive(:uid).and_return('the uid')
         expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
         expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
 
@@ -340,9 +362,9 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
       it "updates the information in auth0 and returns true" do
         expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data).and_return(mock_response)
-        expect(mock_response).to receive(:code).and_return(200)
+        # expect(mock_response).to receive(:code).and_return(200)
 
-        test_model.update_user_in_auth0
+        test_model.update_user_in_auth0('the uid')
       end
     end
 
@@ -362,7 +384,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
       end
 
       before do
-        expect(test_model).to receive(:uid).and_return('the uid')
+        # expect(test_model).to receive(:uid).and_return('the uid')
         expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
         expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
 
@@ -372,17 +394,66 @@ RSpec.describe SyncAttrWithAuth0::Model do
 
         expect(test_model).to receive(:password).twice.and_return('new password')
         expect(test_model).to receive(:verify_password).and_return(true)
+
+        expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data).and_raise(::Auth0::NotFound)
       end
 
-      it "updates the information in auth0 and returns true" do
-        expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data).and_return(mock_response)
-        expect(mock_response).to receive(:code).and_return(404)
-        expect(test_model).to receive(:create_user_in_auth0)
+      context "when a user with a matching email address can be found" do
+        let(:mock_search_result) { double(Object) }
+        let(:mock_search_results) { [mock_search_result] }
 
-        test_model.update_user_in_auth0
+        before do
+          expect(test_model).to receive(:find_user_in_auth0).and_return(mock_search_results)
+          expect(mock_search_result).to receive(:[]).with('user_id').at_least(1).and_return('new uid')
+          expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
+          expect(mock_auth0_client).to receive(:patch_user).with('new uid', mock_user_data).and_return(mock_response)
+
+          expect(test_model).to receive(:uid=).with('new uid')
+          expect(test_model).to receive(:save).and_return(true)
+        end
+
+        it "uses the found uid to update the information in auth0 and updates the uid on the user" do
+          test_model.update_user_in_auth0('the uid')
+        end
+      end
+
+      context "when a user with a matching email address can NOT be found" do
+        before do
+          expect(test_model).to receive(:find_user_in_auth0).and_return([])
+          expect(test_model).to receive(:create_user_in_auth0)
+        end
+
+        it "creates the user in auth0, forcing a default password if one is not provided" do
+          test_model.update_user_in_auth0('the uid')
+        end
       end
     end
   end # update_user_in_auth0
+
+
+  describe "#find_user_in_auth0" do
+    before do
+      expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
+      expect(test_model).to receive(:email).and_return('bar@email.com')
+    end
+
+    context "when the new email does not exist in auth0" do
+      it "should return true" do
+        expect(mock_auth0_client).to receive(:users).with('email:bar@email.com').and_return([])
+
+        expect(test_model.find_user_in_auth0).to eql([])
+      end
+    end
+
+    context "when the new email does exist in auth0" do
+      it "should return false" do
+        expect(mock_auth0_client).to receive(:users).with('email:bar@email.com').and_return(['a result!'])
+
+        expect(test_model.find_user_in_auth0).to eql(['a result!'])
+      end
+    end
+  end # find_user_in_auth0
+
 
 
 end

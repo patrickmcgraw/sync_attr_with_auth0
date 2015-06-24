@@ -60,9 +60,7 @@ module SyncAttrWithAuth0
       ok_to_validate = (self.respond_to?(:validate_with_auth0) and !self.validate_with_auth0.nil? ? self.validate_with_auth0 : true)
 
       if ok_to_validate and self.email_changed?
-        auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(api_version: 1)
-
-        response = auth0.users("email:#{self.send(auth0_sync_options[:email_att])}")
+        response = find_user_in_auth0
 
         return response.empty?
       end
@@ -100,7 +98,7 @@ module SyncAttrWithAuth0
         # TODO: create a user if the uid is nil
         unless uid.nil?
           # Update the user in auth0
-          update_user_in_auth0
+          update_user_in_auth0(uid)
         end
 
       end
@@ -108,10 +106,15 @@ module SyncAttrWithAuth0
       true # don't abort the callback chain
     end
 
-    def create_user_in_auth0
+    def create_user_in_auth0()
       user_metadata = auth0_user_metadata
 
       password = auth0_user_password
+
+      if password.nil?
+        password = auth0_default_password
+      end
+
       email_verified = auth0_email_verified?
       args = {
         'email' => self.send(auth0_sync_options[:email_att]),
@@ -130,7 +133,7 @@ module SyncAttrWithAuth0
       self.save
     end
 
-    def update_user_in_auth0
+    def update_user_in_auth0(uid)
       user_metadata = auth0_user_metadata
 
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client
@@ -161,10 +164,24 @@ module SyncAttrWithAuth0
       args['user_metadata'] = user_metadata
 
       begin
-        response = auth0.patch_user(uid, args)
+        auth0.patch_user(uid, args)
 
       rescue ::Auth0::NotFound => e
         # TODO: We need to attempt to find the correct UID by email or nil the UID on the user.
+        response = find_user_in_auth0
+        found_user = response.first
+
+        if found_user.nil?
+          # Could not find the user, create it in auth0
+          create_user_in_auth0
+        else
+          # Update with the new uid and correct the one on file
+          auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client
+          auth0.patch_user(found_user['user_id'], args)
+
+          self.send("#{auth0_sync_options[:uid_att]}=", found_user['user_id'])
+          self.save
+        end
 
       rescue Exception => e
         ::Rails.logger.error e.message
@@ -172,6 +189,14 @@ module SyncAttrWithAuth0
 
         raise e
       end
+    end
+
+    def find_user_in_auth0
+      auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(api_version: 1)
+
+      response = auth0.users("email:#{self.send(auth0_sync_options[:email_att])}")
+
+      return response
     end
 
     def auth0_user_password
