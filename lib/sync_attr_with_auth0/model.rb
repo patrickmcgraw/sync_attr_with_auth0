@@ -9,6 +9,7 @@ module SyncAttrWithAuth0
       def sync_attr_with_auth0(options = {})
         class_attribute :auth0_sync_options
 
+        verify_environment_variables
         merge_default_options(options)
 
         after_validation :validate_email_with_auth0
@@ -17,6 +18,21 @@ module SyncAttrWithAuth0
       end
 
     private
+
+      def verify_environment_variables
+        env_variables = %w(AUTH0_GLOBAL_CLIENT_ID AUTH0_GLOBAL_CLIENT_SECRET AUTH0_CLIENT_ID AUTH0_CLIENT_SECRET AUTH0_DOMAIN)
+        missing_env_variables = []
+
+        env_variables.each do |env_variable_name|
+          unless ENV[env_variable_name]
+            missing_env_variables << env_variable_name
+          end
+        end
+
+        if missing_env_variables.size > 0
+          raise Exception.new("Missing the following required environment variables: #{missing_env_variables.join(',')}")
+        end
+      end
 
       def merge_default_options(options)
         self.auth0_sync_options = {
