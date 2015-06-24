@@ -14,7 +14,7 @@ module SyncAttrWithAuth0
 
         after_validation :validate_email_with_auth0
         after_create :auth0_create
-        after_update :auth0_update
+        after_update :auth0_update, if: :auth0_dirty?
       end
 
     private
@@ -167,7 +167,6 @@ module SyncAttrWithAuth0
         auth0.patch_user(uid, args)
 
       rescue ::Auth0::NotFound => e
-        # TODO: We need to attempt to find the correct UID by email or nil the UID on the user.
         response = find_user_in_auth0
         found_user = response.first
 
@@ -232,6 +231,12 @@ module SyncAttrWithAuth0
       end
 
       return user_metadata
+    end
+
+    def auth0_dirty?
+      !!(auth0_sync_options[:sync_atts].inject(false) do |memo, attrib|
+        memo || try("#{attrib}_changed?")
+      end)
     end
 
   end

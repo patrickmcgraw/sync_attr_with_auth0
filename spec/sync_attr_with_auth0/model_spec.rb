@@ -7,38 +7,17 @@ RSpec.describe SyncAttrWithAuth0::Model do
   end
 
   class TestModel
+    include ActiveRecord::Callbacks
+    include ActiveModel::Dirty
     include SyncAttrWithAuth0::Model
 
-    class_attribute :_after_validation
-    self._after_validation = []
-    def self.after_validation(callback)
-      self._after_validation << callback
-    end
+    attributes_array = [:email, :password, :given_name, :family_name,
+                        :name, :uid, :foo, :bar]
 
-    class_attribute :_after_create
-    self._after_create = []
-    def self.after_create(callback)
-      self._after_create << callback
-    end
+    attr_accessor(*attributes_array)
+    define_attribute_methods(*attributes_array)
 
-    class_attribute :_after_update
-    self._after_update = []
-    def self.after_update(callback)
-      self._after_update << callback
-    end
-
-    def changes; end;
-    def email_changed?; end;
-    def password_changed?; end;
     def save; end;
-
-    def name; end;
-    def given_name; end;
-    def family_name; end;
-    def uid; end;
-    def uid=(uid); end;
-    def email; end;
-    def foo; end;
 
     def validate_with_auth0; return true; end;
     def sync_with_auth0_on_create; return true; end;
@@ -65,15 +44,16 @@ RSpec.describe SyncAttrWithAuth0::Model do
   let (:mock_auth0_client) { double(Object) }
 
   it "has #sync_attr_with_auth0 as an after_validation callback" do
-    expect(FullTestModel._after_validation).to eql([:validate_email_with_auth0])
+    expect(FullTestModel._validation_callbacks.collect(&:filter)).to eql([:validate_email_with_auth0])
   end
 
   it "has #sync_attr_with_auth0 as an after_create callback" do
-    expect(FullTestModel._after_create).to eql([:auth0_create])
+    expect(FullTestModel._create_callbacks.collect(&:filter)).to eql([:auth0_create])
   end
 
   it "has #sync_attr_with_auth0 as an after_update callback" do
-    expect(FullTestModel._after_update).to eql([:auth0_update])
+    expect(FullTestModel._update_callbacks.collect(&:filter)).to eql([:auth0_update])
+    expect(FullTestModel._update_callbacks.first.instance_variable_get(:"@if").first).to eql(:auth0_dirty?)
   end
 
 
@@ -454,6 +434,22 @@ RSpec.describe SyncAttrWithAuth0::Model do
     end
   end # find_user_in_auth0
 
+  describe "#auth0_dirty?" do
+    context "when no auth0 attributes are changed" do
+      it "returns false" do
+        test_model.bar_will_change!
+        expect(test_model.changed?).to eql(true)
+        expect(test_model.auth0_dirty?).to eql(false)
+      end
+    end
 
+    context "when some auth0 attributes are changed" do
+      it "returns true" do
+        test_model.email_will_change!
+        expect(test_model.changed?).to eql(true)
+        expect(test_model.auth0_dirty?).to eql(true)
+      end
+    end
+  end
 
 end
