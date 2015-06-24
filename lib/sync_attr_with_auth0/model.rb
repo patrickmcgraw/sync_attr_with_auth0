@@ -13,8 +13,8 @@ module SyncAttrWithAuth0
         merge_default_options(options)
 
         after_validation :validate_email_with_auth0
-        after_create :create_user_in_auth0
-        after_update :sync_attr_with_auth0
+        after_create :auth0_create
+        after_update :auth0_update
       end
 
     private
@@ -70,7 +70,7 @@ module SyncAttrWithAuth0
       return true
     end
 
-    def create_user_in_auth0
+    def auth0_create
       # When creating a new user, create the user in auth0.
 
       ok_to_sync = (self.respond_to?(:sync_with_auth0_on_create) and !self.sync_with_auth0_on_create.nil?  ? self.sync_with_auth0_on_create : true)
@@ -83,31 +83,13 @@ module SyncAttrWithAuth0
       end
 
       if ok_to_sync
-        user_metadata = auth0_user_metadata
-
-        password = auth0_user_password
-        email_verified = auth0_email_verified?
-        args = {
-          'email' => self.send(auth0_sync_options[:email_att]),
-          'password' => password,
-          'connection' => auth0_sync_options[:connection_name],
-          'email_verified' => email_verified,
-          'user_metadata' => user_metadata
-        }
-
-        auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client
-
-        response = auth0.create_user(self.send(auth0_sync_options[:name_att]), args)
-
-        # Update the record with the uid
-        self.send("#{auth0_sync_options[:uid_att]}=", response['user_id'])
-        self.save
+        create_user_in_auth0
       end
 
       true # don't abort the callback chain
     end
 
-    def sync_attr_with_auth0
+    def auth0_update
       ok_to_sync = (self.respond_to?(:sync_with_auth0_on_update) and !self.sync_with_auth0_on_update.nil? ? self.sync_with_auth0_on_update : true)
 
       if ok_to_sync
@@ -115,43 +97,81 @@ module SyncAttrWithAuth0
         # Get the auth0 uid
         uid = self.send(auth0_sync_options[:uid_att])
 
-        # Don't try to update auth0 if the user doesn't have a uid
+        # TODO: create a user if the uid is nil
         unless uid.nil?
-          user_metadata = auth0_user_metadata
-
-          auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client
-
-          args = {
-            'app_metadata' => {
-              'name' => self.send(auth0_sync_options[:name_att]),
-              'nickname' => self.send(auth0_sync_options[:name_att]),
-              'given_name' => self.send(auth0_sync_options[:given_name_att]),
-              'family_name' => self.send(auth0_sync_options[:family_name_att])
-            }
-          }
-
-          if (
-            auth0_sync_options[:sync_atts].index(auth0_sync_options[:password_att]) and
-            # Because the password being passed to auth0 probably is not a real
-            # field (and if it is it needs to be the unencrypted value), we
-            # can't rely on checking if the password attribute changed (chances
-            # are, that method does not exist). So assume the password attribute
-            # is only set if it's being changed.
-            !self.send(auth0_sync_options[:password_att]).nil?
-          )
-            # The password should be sync'd and was changed
-            args['password'] = self.send(auth0_sync_options[:password_att])
-            args['verify_password'] = auth0_verify_password?
-          end
-
-          args['user_metadata'] = user_metadata
-
-          response = auth0.patch_user(uid, args)
+          # Update the user in auth0
+          update_user_in_auth0
         end
 
       end
 
       true # don't abort the callback chain
+    end
+
+    def create_user_in_auth0
+      user_metadata = auth0_user_metadata
+
+      password = auth0_user_password
+      email_verified = auth0_email_verified?
+      args = {
+        'email' => self.send(auth0_sync_options[:email_att]),
+        'password' => password,
+        'connection' => auth0_sync_options[:connection_name],
+        'email_verified' => email_verified,
+        'user_metadata' => user_metadata
+      }
+
+      auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client
+
+      response = auth0.create_user(self.send(auth0_sync_options[:name_att]), args)
+
+      # Update the record with the uid
+      self.send("#{auth0_sync_options[:uid_att]}=", response['user_id'])
+      self.save
+    end
+
+    def update_user_in_auth0
+      user_metadata = auth0_user_metadata
+
+      auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client
+
+      args = {
+        'app_metadata' => {
+          'name' => self.send(auth0_sync_options[:name_att]),
+          'nickname' => self.send(auth0_sync_options[:name_att]),
+          'given_name' => self.send(auth0_sync_options[:given_name_att]),
+          'family_name' => self.send(auth0_sync_options[:family_name_att])
+        }
+      }
+
+      if (
+        auth0_sync_options[:sync_atts].index(auth0_sync_options[:password_att]) and
+        # Because the password being passed to auth0 probably is not a real
+        # field (and if it is it needs to be the unencrypted value), we
+        # can't rely on checking if the password attribute changed (chances
+        # are, that method does not exist). So assume the password attribute
+        # is only set if it's being changed.
+        !self.send(auth0_sync_options[:password_att]).nil?
+      )
+        # The password should be sync'd and was changed
+        args['password'] = self.send(auth0_sync_options[:password_att])
+        args['verify_password'] = auth0_verify_password?
+      end
+
+      args['user_metadata'] = user_metadata
+
+      begin
+        response = auth0.patch_user(uid, args)
+
+      rescue ::Auth0::NotFound => e
+        # TODO: We need to attempt to find the correct UID by email or nil the UID on the user.
+
+      rescue Exception => e
+        ::Rails.logger.error e.message
+        ::Rails.logger.error e.backtrace.join("\n")
+
+        raise e
+      end
     end
 
     def auth0_user_password
