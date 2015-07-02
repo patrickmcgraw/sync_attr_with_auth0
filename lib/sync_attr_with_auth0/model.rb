@@ -149,12 +149,7 @@ module SyncAttrWithAuth0
 
       if (
         auth0_sync_options[:sync_atts].index(auth0_sync_options[:password_att]) and
-        # Because the password being passed to auth0 probably is not a real
-        # field (and if it is it needs to be the unencrypted value), we
-        # can't rely on checking if the password attribute changed (chances
-        # are, that method does not exist). So assume the password attribute
-        # is only set if it's being changed.
-        !self.send(auth0_sync_options[:password_att]).nil?
+        auth0_user_password_changed?
       )
         # The password should be sync'd and was changed
         args['password'] = self.send(auth0_sync_options[:password_att])
@@ -202,6 +197,20 @@ module SyncAttrWithAuth0
       self.respond_to?(auth0_sync_options[:password_att]) ? self.send(auth0_sync_options[:password_att]) : auth0_default_password
     end
 
+    def auth0_user_password_changed?
+      if self.respond_to?(auth0_sync_options[:password_att])
+        if self.respond_to?(:"#{auth0_sync_options[:password_att].to_s}_changed?")
+          # We have a changed method, use it
+          return self.send(:"#{auth0_sync_options[:password_att].to_s}_changed?")
+        else
+          # We don't have a changed method, check if the attribute was set.
+          return !self.send(auth0_sync_options[:password_att]).nil?
+        end
+      end
+
+      return false
+    end
+
     def auth0_email_verified?
       !!(self.respond_to?(auth0_sync_options[:email_verified_att]) ? self.send(auth0_sync_options[:email_verified_att]) : false)
     end
@@ -234,9 +243,14 @@ module SyncAttrWithAuth0
     end
 
     def auth0_dirty?
-      !!(auth0_sync_options[:sync_atts].inject(false) do |memo, attrib|
+      is_dirty = !!(auth0_sync_options[:sync_atts].inject(false) do |memo, attrib|
         memo || try("#{attrib}_changed?")
       end)
+
+      # If the password was changed, force is_dirty to be true
+      is_dirty = true if auth0_user_password_changed?
+
+      return is_dirty
     end
 
   end

@@ -301,7 +301,7 @@ RSpec.describe SyncAttrWithAuth0::Model do
         expect(test_model).to receive(:given_name).and_return('John')
         expect(test_model).to receive(:family_name).and_return('Doe')
 
-        expect(test_model).to receive(:password).and_return(nil)
+        expect(test_model).to receive(:auth0_user_password_changed?).and_return(false)
       end
 
       it "updates the information in auth0 and returns true" do
@@ -336,7 +336,8 @@ RSpec.describe SyncAttrWithAuth0::Model do
         expect(test_model).to receive(:given_name).and_return('John')
         expect(test_model).to receive(:family_name).and_return('Doe')
 
-        expect(test_model).to receive(:password).twice.and_return('new password')
+        expect(test_model).to receive(:auth0_user_password_changed?).and_return(true)
+        expect(test_model).to receive(:password).and_return('new password')
         expect(test_model).to receive(:verify_password).and_return(true)
       end
 
@@ -372,7 +373,8 @@ RSpec.describe SyncAttrWithAuth0::Model do
         expect(test_model).to receive(:given_name).and_return('John')
         expect(test_model).to receive(:family_name).and_return('Doe')
 
-        expect(test_model).to receive(:password).twice.and_return('new password')
+        expect(test_model).to receive(:auth0_user_password_changed?).and_return(true)
+        expect(test_model).to receive(:password).and_return('new password')
         expect(test_model).to receive(:verify_password).and_return(true)
 
         expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data).and_raise(::Auth0::NotFound)
@@ -446,6 +448,16 @@ RSpec.describe SyncAttrWithAuth0::Model do
     context "when some auth0 attributes are changed" do
       it "returns true" do
         test_model.email_will_change!
+        expect(test_model.changed?).to eql(true)
+        expect(test_model.auth0_dirty?).to eql(true)
+      end
+    end
+
+    context "when only the password is changed" do
+      before { expect(test_model).to receive(:auth0_user_password_changed?).and_return(true) }
+
+      it "returns true" do
+        test_model.bar_will_change!
         expect(test_model.changed?).to eql(true)
         expect(test_model.auth0_dirty?).to eql(true)
       end
