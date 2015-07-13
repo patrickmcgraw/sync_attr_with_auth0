@@ -7,7 +7,17 @@ RSpec.describe SyncAttrWithAuth0::Model do
   end
 
   class TestModel
-    include ActiveRecord::Callbacks
+    extend ActiveModel::Naming
+    extend ActiveModel::Callbacks
+    define_model_callbacks :commit, :only => :after
+    define_model_callbacks :create, :only => :after
+    define_model_callbacks :update, :only => :after
+
+    include ActiveModel::Validations
+    include ActiveModel::Validations::Callbacks
+    include ActiveModel::Conversion
+
+    # include ActiveRecord::Callbacks
     include ActiveModel::Dirty
     include SyncAttrWithAuth0::Model
 
@@ -54,6 +64,10 @@ RSpec.describe SyncAttrWithAuth0::Model do
   it "has #sync_attr_with_auth0 as an after_update callback" do
     expect(FullTestModel._update_callbacks.collect(&:filter)).to eql([:auth0_update])
     expect(FullTestModel._update_callbacks.first.instance_variable_get(:"@if").first).to eql(:auth0_dirty?)
+  end
+
+  it "has #auth0_set_uid as an after_commit callback" do
+    expect(FullTestModel._commit_callbacks.collect(&:filter)).to eql([:auth0_set_uid])
   end
 
 
@@ -172,6 +186,27 @@ RSpec.describe SyncAttrWithAuth0::Model do
   end
 
 
+  describe "#auth0_set_uid" do
+    context "when the instance variable is set" do
+      before { test_model.instance_variable_set(:@auth0_uid, 'auth0|user_id') }
+
+      it "should update the user with the auth0 user id and return true" do
+        expect(test_model).to receive(:uid=).with('auth0|user_id')
+        expect(test_model).to receive(:save).and_return(true)
+
+        expect(test_model.auth0_set_uid).to eql(true)
+        expect(test_model.instance_variable_get(:@auth0_uid)).to eq(nil)
+      end
+    end
+
+    context "when the instance variable is not set" do
+      it "should do nothing and return true" do
+        expect(test_model.auth0_set_uid).to eql(true)
+      end
+    end
+  end
+
+
   describe "#create_user_in_auth0" do
     before do
       expect(test_model).to receive(:auth0_user_metadata).and_return( {'foo' => 'bar'} )
@@ -269,10 +304,9 @@ RSpec.describe SyncAttrWithAuth0::Model do
       expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
       expect(mock_auth0_client).to receive(:create_user).with('new name', mock_user_data).and_return({ 'user_id' => 'auth0|user_id' })
 
-      expect(test_model).to receive(:uid=).with('auth0|user_id')
-      expect(test_model).to receive(:save).and_return(true)
-
       test_model.create_user_in_auth0
+
+      expect(test_model.instance_variable_get(:@auth0_uid)).to eq('auth0|user_id')
     end
   end # create_user_in_auth0
 
@@ -389,13 +423,12 @@ RSpec.describe SyncAttrWithAuth0::Model do
           expect(mock_search_result).to receive(:[]).with('user_id').at_least(1).and_return('new uid')
           expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
           expect(mock_auth0_client).to receive(:patch_user).with('new uid', mock_user_data).and_return(mock_response)
-
-          expect(test_model).to receive(:uid=).with('new uid')
-          expect(test_model).to receive(:save).and_return(true)
         end
 
         it "uses the found uid to update the information in auth0 and updates the uid on the user" do
           test_model.update_user_in_auth0('the uid')
+
+          expect(test_model.instance_variable_get(:@auth0_uid)).to eq('new uid')
         end
       end
 

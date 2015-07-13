@@ -15,6 +15,7 @@ module SyncAttrWithAuth0
         after_validation :validate_email_with_auth0
         after_create :auth0_create
         after_update :auth0_update, if: :auth0_dirty?
+        after_commit :auth0_set_uid
       end
 
     private
@@ -106,6 +107,21 @@ module SyncAttrWithAuth0
       true # don't abort the callback chain
     end
 
+    def auth0_set_uid
+      if @auth0_uid
+        self.sync_with_auth0_on_update = false if self.respond_to?(:sync_with_auth0_on_update=)
+        self.send("#{auth0_sync_options[:uid_att]}=", @auth0_uid)
+
+        # Nil the instance variable to prevent an infinite loop
+        @auth0_uid = nil
+
+        # Save!
+        self.save
+      end
+
+      true # don't abort the callback chain
+    end
+
     def create_user_in_auth0()
       user_metadata = auth0_user_metadata
 
@@ -128,9 +144,8 @@ module SyncAttrWithAuth0
 
       response = auth0.create_user(self.send(auth0_sync_options[:name_att]), args)
 
-      # Update the record with the uid
-      self.send("#{auth0_sync_options[:uid_att]}=", response['user_id'])
-      self.save
+      # Update the record with the uid after_commit
+      @auth0_uid = response['user_id']
     end
 
     def update_user_in_auth0(uid)
@@ -173,8 +188,8 @@ module SyncAttrWithAuth0
           auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client
           auth0.patch_user(found_user['user_id'], args)
 
-          self.send("#{auth0_sync_options[:uid_att]}=", found_user['user_id'])
-          self.save
+          # Update the record with the uid after_commit
+          @auth0_uid = found_user['user_id']
         end
 
       rescue Exception => e
