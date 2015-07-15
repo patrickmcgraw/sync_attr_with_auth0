@@ -171,6 +171,15 @@ module SyncAttrWithAuth0
         args['verify_password'] = auth0_verify_password?
       end
 
+      if (
+        auth0_sync_options[:sync_atts].index(auth0_sync_options[:email_att]) and
+        auth0_email_changed?
+      )
+        # The email should be sync'd and was changed
+        args['email'] = self.send(auth0_sync_options[:email_att])
+        args['verify_email'] = auth0_email_verified?
+      end
+
       args['user_metadata'] = user_metadata
 
       begin
@@ -228,6 +237,10 @@ module SyncAttrWithAuth0
 
     def auth0_email_verified?
       !!(self.respond_to?(auth0_sync_options[:email_verified_att]) ? self.send(auth0_sync_options[:email_verified_att]) : false)
+    end
+
+    def auth0_email_changed?
+      !!(self.respond_to?(auth0_sync_options[:email_att]) ? self.send("#{auth0_sync_options[:email_att]}_changed?") : false)
     end
 
     def auth0_verify_password?

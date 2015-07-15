@@ -383,6 +383,43 @@ RSpec.describe SyncAttrWithAuth0::Model do
       end
     end
 
+    context "when email is being updated" do
+      let(:mock_user_data) do
+        {
+          'app_metadata' => {
+            'name' => 'John Doe',
+            'nickname' => 'John Doe',
+            'given_name' => 'John',
+            'family_name' => 'Doe'
+          },
+          'email' => 'new@bloodhub.com',
+          'verify_email' => true,
+          'user_metadata' => { 'foo' => 'bar' }
+        }
+      end
+
+      before do
+        # expect(test_model).to receive(:uid).and_return('the uid')
+        expect(test_model).to receive(:auth0_user_metadata).and_return({ 'foo' => 'bar' })
+        expect(::SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).and_return(mock_auth0_client)
+
+        expect(test_model).to receive(:name).twice.and_return('John Doe')
+        expect(test_model).to receive(:given_name).and_return('John')
+        expect(test_model).to receive(:family_name).and_return('Doe')
+
+        expect(test_model).to receive(:auth0_email_changed?).and_return(true)
+        expect(test_model).to receive(:email).and_return('new@bloodhub.com')
+        expect(test_model).to receive(:email_verified).and_return(true)
+      end
+
+      it "updates the information in auth0 and returns true" do
+        expect(mock_auth0_client).to receive(:patch_user).with('the uid', mock_user_data).and_return(mock_response)
+        # expect(mock_response).to receive(:code).and_return(200)
+
+        test_model.update_user_in_auth0('the uid')
+      end
+    end
+
     context "when the user is not found in auth0" do
       let(:mock_user_data) do
         {
