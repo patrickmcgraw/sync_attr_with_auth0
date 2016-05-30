@@ -1,7 +1,7 @@
 Gem::Specification.new do |gem|
   gem.name          = 'sync_attr_with_auth0'
-  gem.version       = '0.0.24'
-  gem.date          = '2015-03-10'
+  gem.version       = '0.0.25'
+  gem.date          = '2016-05-30'
   gem.summary       = "Synchronize attributes on a local ActiveRecord user model with the user metadata store on Auth0"
   gem.description   = gem.summary
   gem.authors       = ["Patrick McGraw", "Mike Oliver"]
@@ -13,7 +13,7 @@ Gem::Specification.new do |gem|
   gem.license       = 'MIT'
   gem.require_paths = ['lib']
 
-  gem.add_dependency 'rest-client', '~> 1.7.2'
+  gem.add_dependency 'rest-client', '>= 1.7'
   gem.add_dependency 'json', '~> 1.8.1'
   gem.add_dependency 'activerecord', '>= 4.0.0'
   gem.add_dependency 'activesupport', '>= 4.0.0'
