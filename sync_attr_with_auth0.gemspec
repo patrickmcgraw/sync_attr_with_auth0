@@ -6,9 +6,14 @@ Gem::Specification.new do |gem|
   gem.description   = gem.summary
   gem.authors       = ["Patrick McGraw", "Mike Oliver"]
   gem.email         = 'patrick@mcgraw-tech.com'
-  gem.files         = [ "lib/sync_attr_with_auth0.rb",
-                        "lib/sync_attr_with_auth0/auth0.rb",
-                        "lib/sync_attr_with_auth0/model.rb" ]
+  gem.files         = [
+    "lib/sync_attr_with_auth0.rb",
+    "lib/sync_attr_with_auth0/auth0.rb",
+    "lib/sync_attr_with_auth0/configuration.rb",
+    "lib/sync_attr_with_auth0/adapters/active_record.rb",
+    "lib/sync_attr_with_auth0/adapters/active_record/sync.rb",
+    "lib/sync_attr_with_auth0/adapters/active_record/validation.rb"
+  ]
   gem.homepage      = 'http://rubygems.org/gems/sync_attr_with_auth0'
   gem.license       = 'MIT'
   gem.require_paths = ['lib']
