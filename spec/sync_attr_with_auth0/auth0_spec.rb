@@ -2,7 +2,7 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
 
   require 'jwt'
 
-  describe "#create_auth0_jwt" do
+  describe "::create_auth0_jwt" do
     let(:mock_payload) do
       {
         'aud' => 'global client id',
@@ -26,21 +26,30 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
     it "should create and return a java web token for auth0" do
       expect(::SyncAttrWithAuth0::Auth0.create_auth0_jwt(global_client_id: 'global client id', global_client_secret: 'global client secret')).to eq('jwt string')
     end
-  end
+  end # ::create_auth0_jwt
 
-  describe "#create_auth0_client" do
+
+  describe "::create_auth0_client" do
+    let(:mock_config) do
+      double(
+        Object,
+        {
+          auth0_global_client_id: 'global client id',
+          auth0_global_client_secret: 'global client secret',
+          auth0_client_id: 'client id',
+          auth0_client_secret: 'client secret',
+          auth0_namespace: 'namespace'
+        }
+      )
+    end
+
+    before { allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config) }
+
     context "when api_version is 1" do
       before { expect(Auth0Client).to receive(:new).with(client_id: 'client id', client_secret: 'client secret', namespace: 'namespace').and_return('version 1 api client') }
 
       it "should return a client for version 1 of the API" do
-        expect(::SyncAttrWithAuth0::Auth0.create_auth0_client(
-          api_version: 1,
-          global_client_id: 'global client id',
-          global_client_secret: 'global client secret',
-          client_id: 'client id',
-          client_secret: 'client secret',
-          namespace: 'namespace'
-        )).to eq('version 1 api client')
+        expect(::SyncAttrWithAuth0::Auth0.create_auth0_client(api_version: 1)).to eq('version 1 api client')
       end
     end
 
@@ -50,17 +59,134 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
         expect(Auth0Client).to receive(:new).with(api_version: 2, access_token: 'jwt string', namespace: 'namespace').and_return('version 2 api client')
       end
 
-      it "should return a client for version 1 of the API" do
-        expect(::SyncAttrWithAuth0::Auth0.create_auth0_client(
-          api_version: 2,
-          global_client_id: 'global client id',
-          global_client_secret: 'global client secret',
-          client_id: 'client id',
-          client_secret: 'client secret',
-          namespace: 'namespace'
-        )).to eq('version 2 api client')
+      it "should return a client for version 2 of the API" do
+        expect(::SyncAttrWithAuth0::Auth0.create_auth0_client).to eq('version 2 api client')
       end
     end
-  end
+  end # ::create_auth0_client
+
+
+  describe "::validate_auth0_config_for_api" do
+    let(:mock_config) do
+      double(
+        Object,
+        {
+          auth0_global_client_id: nil,
+          auth0_global_client_secret: nil,
+          auth0_client_id: nil,
+          auth0_client_secret: nil,
+          auth0_namespace: nil
+        }
+      )
+    end
+
+    before { allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config) }
+
+    context "when the api version is 1" do
+      it "should raise an exception listing the v1 missing settings" do
+        expect {
+          ::SyncAttrWithAuth0::Auth0.validate_auth0_config_for_api(1)
+        }.to raise_error(::SyncAttrWithAuth0::Auth0::InvalidAuth0ConfigurationException, "The following required auth0 settings were invalid: auth0_client_id, auth0_client_secret, auth0_namespace")
+      end
+    end
+
+    context "when the api version is 2" do
+      it "should raise an exception listing the v2 missing settings" do
+        expect {
+          ::SyncAttrWithAuth0::Auth0.validate_auth0_config_for_api(2)
+        }.to raise_error(::SyncAttrWithAuth0::Auth0::InvalidAuth0ConfigurationException, "The following required auth0 settings were invalid: auth0_global_client_id, auth0_global_client_secret, auth0_namespace")
+      end
+    end
+  end # ::validate_auth0_config_for_api
+
+
+  describe "::find_users_by_email" do
+    let(:email) { 'foo@email.com' }
+    let(:mock_config) do
+      double(
+        Object,
+        {
+          auth0_global_client_id: 'global client id',
+          auth0_global_client_secret: 'global client secret',
+          auth0_client_id: 'client id',
+          auth0_client_secret: 'client secret',
+          auth0_namespace: 'namespace'
+        }
+      )
+    end
+    let(:mock_client) { double(Object) }
+
+    before do
+      allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
+      allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
+      allow(mock_client).to receive(:users).with(q: 'email:"foo@email.com"').and_return('results!')
+    end
+
+    it "should return the results from the auth0 search" do
+      expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email)).to eq('results!')
+    end
+  end # ::find_users_by_email
+
+
+  describe "::create_user" do
+    let(:name) { 'John Doe' }
+    let(:params) do
+      {}
+    end
+    let(:mock_config) do
+      double(
+        Object,
+        {
+          auth0_global_client_id: 'global client id',
+          auth0_global_client_secret: 'global client secret',
+          auth0_client_id: 'client id',
+          auth0_client_secret: 'client secret',
+          auth0_namespace: 'namespace'
+        }
+      )
+    end
+    let(:mock_client) { double(Object) }
+
+    before do
+      allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
+      allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
+      allow(mock_client).to receive(:create_user).with('John Doe', {}).and_return('response!')
+    end
+
+    it "should return the response from posting to auth0" do
+      expect(SyncAttrWithAuth0::Auth0.create_user(name, params)).to eq('response!')
+    end
+  end # ::create_user
+
+
+  describe "::patch_user" do
+    let(:uid) { 'uid' }
+    let(:params) do
+      {}
+    end
+    let(:mock_config) do
+      double(
+        Object,
+        {
+          auth0_global_client_id: 'global client id',
+          auth0_global_client_secret: 'global client secret',
+          auth0_client_id: 'client id',
+          auth0_client_secret: 'client secret',
+          auth0_namespace: 'namespace'
+        }
+      )
+    end
+    let(:mock_client) { double(Object) }
+
+    before do
+      allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
+      allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
+      allow(mock_client).to receive(:patch_user).with('uid', {}).and_return('response!')
+    end
+
+    it "should return the response from posting to auth0" do
+      expect(SyncAttrWithAuth0::Auth0.patch_user(uid, params)).to eq('response!')
+    end
+  end # ::patch_user
 
 end

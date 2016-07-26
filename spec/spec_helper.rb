@@ -19,6 +19,7 @@
 ENV['AUTH0_CLIENT_ID'] = 'auth0_client_id_123'
 ENV['AUTH0_CLIENT_SECRET'] = 'auth0_client_secret_456'
 ENV['AUTH0_DOMAIN'] = 'auth0.domain.com'
+ENV['AUTH0_NAMESPACE'] = 'auth0.domain.com'
 ENV['AUTH0_GLOBAL_CLIENT_ID'] = 'auth0_global_client_id_123'
 ENV['AUTH0_GLOBAL_CLIENT_SECRET'] = 'auth0_global_client_secret_456'
 

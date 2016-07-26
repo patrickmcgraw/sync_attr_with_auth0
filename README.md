@@ -5,53 +5,107 @@ Synchronize attributes on a local ActiveRecord user model with the user metadata
 
 This gem will validate the email is unique on auth0, create the user on auth0, as well as keep the information you select up-to-date with auth0.
 
+## Important info regarding v0.1
+There were significant changes to the configuration and usage of the gem as of v0.1.  The readme reflects the current version of that. Please see the changelog for more info about the changes.
+
 ## Usage
 
-**sync_attr_with_auth0** options
+**sync_attr_with_auth0** fields, options
 
 ### Options
 
-**uid_att** (default = :uid)
+**auth0_namespace** (defaults to the value of ENV['AUTH0_NAMESPACE'] )
+:   The Auth0 namespace required for API calls.
+
+**auth0_global_client_id** (defaults to the value of ENV['AUTH0_GLOBAL_CLIENT_ID'] )
+:   The Auth0 global client id required for API v2 calls.
+
+**auth0_global_client_secret** (defaults to the value of ENV['AUTH0_GLOBAL_CLIENT_SECRET'] )
+:   The Auth0 global client secret required for API v2 calls.
+
+**auth0_client_id** (defaults to the value of ENV['AUTH0_CLIENT_ID'] )
+:   The Auth0 client id required for API v1 calls.
+
+**auth0_client_secret** (defaults to the value of ENV['AUTH0_CLIENT_SECRET'] )
+:   The Auth0 client secret required for API v1 calls.
+
+**auth0_uid_attribute** (default = :auth0_uid)
 :   A symbol of the attribute containing the auth0 user id.
 
-**name_att** (default = :name)
+**name_attribute** (default = :name)
 :   A symbol of the attribute or method containing the auth0 user's full name.
 
-**given_name_att** (default = :given_name)
+**given_name_attribute** (default = :given_name)
 :   A symbol of the attribute containing the auth0 user's first or given name.
 
-**family_name_att** (default = :family_name)
+**family_name_attribute** (default = :family_name)
 :   A symbol of the attribute containing the auth0 user's last or family name.
 
-**email_att** (default = :email)
+**email_attribute** (default = :email)
 :   A symbol of the attribute containing the email address.
 
-**password_att** (default = :password)
+**password_attribute** (default = :password)
 :   A symbol of the attribute containing the password.
 
-**email_verified_att** (default = :email_verified)
+**email_verified_attribute** (default = :email_verified)
 :   A symbol of the attribute containing if the email has been verified.
+
+**verify_password_attribute** (default = :verify_password)
+:   A symbol of the attribute containing if the password needs to be verified.
 
 **connection_name** (default = 'Username-Password-Authentication')
 :   A string containing the database connection name.
 
-**sync_atts** (default = [])
-:   An array of symbols of the attributes to sync with auth0.
 
 ### Example
 ``` ruby
 class User < ActiveRecord::Base
-  sync_attr_with_auth0 auth0_uid_att: :auth0_uid, auth0_sync_atts: [:user_role]
+  sync_attr_with_auth0 :first_name, :last_name, :user_role,
+    auth0_uid_attribute: :uid,
+    given_name_attribute: :first_name,
+    last_name_attribute: :last_name
 end
 ```
 
 The gem utilizes the following callbacks:
 
 **after_validation**
-:   verifies the email address is unique in auth0 if the email address is being changed.  This can be suppressed by setting the attribute "validate_with_auth0" to false on the model.
+:   The gem verifies the email address is unique in Auth0 if the email address is being changed.  This can be suppressed by setting the attribute "validate_with_auth0" to false on the model.
 
 **after_create**
-:   creates the user with the synchronized attributes in auth0 and updates the local user with the auth0 user id.  This can be suppressed by setting the attribute "sync_with_auth0_on_create" to false on the model.
+:   The gem saves the user with the synchronized attributes in Auth0 and updates the local user with the auth0 user id.  This can be suppressed by setting the attribute "sync_with_auth0_on_create" to false on the model.
 
 **after_update**
-:   updates the user on auth0 with the synchronized attributes.  If the email or password is being synchronized, it makes the separate API calls necessary to update auth0.  This can be suppressed by setting the attribute "sync_with_auth0_on_update" to false on the model.
+:   The gem saves the user on Auth0 with the synchronized attributes.  If the email or password are changed, it includes the data necessary to update auth0 (they are otherwise not sent to Auth0).  This can be suppressed by setting the attribute "sync_with_auth0_on_update" to false on the model.
+
+## Configuration Parameters
+
+You can handle a bunch of configuration params through an initializer:
+
+``` ruby
+SyncAttrWithAuth0.configure do |config|
+
+  # To set the default Auth0 API settings
+  #
+  # config.auth0_global_client_id = ENV['AUTH0_GLOBAL_CLIENT_ID']
+  # config.auth0_global_client_secret = ENV['AUTH0_GLOBAL_CLIENT_SECRET']
+  # config.auth0_client_id = ENV['AUTH0_CLIENT_ID']
+  # config.auth0_client_secret = ENV['AUTH0_CLIENT_SECRET']
+  # config.auth0_namespace = ENV['AUTH0_NAMESPACE']
+
+  # To set the default connection name for Auth0
+  #
+  # config.connection_name = 'Username-Password-Authentication'
+
+  # To set the default attribute names
+  #
+  # config.auth0_uid_attribute = :auth0_uid
+  # config.name_attribute = :name
+  # config.given_name_attribute = :given_name
+  # config.family_name_attribute = :family_name
+  # config.email_attribute = :email
+  # config.password_attribute = :password
+  # config.email_verified_attribute = :email_verified
+  # config.verify_password_attribute = :verify_password
+end
+```
