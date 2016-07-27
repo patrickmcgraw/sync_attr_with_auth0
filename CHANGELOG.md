@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.2
+* Updated the user search to support filtering the current user's Auth0 user id from the results.
+
 ## 0.1.1
 * Updated the create to submit the app_metadata hash.
 

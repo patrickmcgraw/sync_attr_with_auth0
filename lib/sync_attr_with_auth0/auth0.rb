@@ -27,7 +27,7 @@ module SyncAttrWithAuth0
       api_version: 2,
       config: SyncAttrWithAuth0.configuration
     )
-      validate_auth0_config_for_api(api_version, config)
+      validate_auth0_config_for_api(api_version, config: config)
 
       case api_version
       when 1
@@ -41,7 +41,7 @@ module SyncAttrWithAuth0
     end # ::create_auth0_client
 
 
-    def self.validate_auth0_config_for_api(api_version, config = SyncAttrWithAuth0.configuration)
+    def self.validate_auth0_config_for_api(api_version, config: SyncAttrWithAuth0.configuration)
       settings_to_validate = []
       invalid_settings = []
 
@@ -64,21 +64,26 @@ module SyncAttrWithAuth0
     end # ::validate_auth0_config_for_api
 
 
-    def self.find_users_by_email(email, config = SyncAttrWithAuth0.configuration)
+    def self.find_users_by_email(email, exclude_user_id: nil, config: SyncAttrWithAuth0.configuration)
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(config: config)
+      query_string = "email:\"#{email}\""
 
-      return auth0.users(q: "email:\"#{email}\"")
+      unless exclude_user_id.nil?
+        query_string += " -user_id:\"#{exclude_user_id}\""
+      end
+
+      return auth0.users(q: query_string)
     end # ::find_users_by_email
 
 
-    def self.create_user(name, params, config = SyncAttrWithAuth0.configuration)
+    def self.create_user(name, params, config: SyncAttrWithAuth0.configuration)
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(config: config)
 
       return auth0.create_user(name, params)
     end # ::create_user
 
 
-    def self.patch_user(uid, params, config = SyncAttrWithAuth0.configuration)
+    def self.patch_user(uid, params, config: SyncAttrWithAuth0.configuration)
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(config: config)
 
       return auth0.patch_user(uid, params)

@@ -124,13 +124,14 @@ module SyncAttrWithAuth0
 
         describe "#users_in_auth0_with_matching_email" do
           let(:mock_client) { double(Object) }
-          let(:mock_config) { double(Object, email_attribute: :email) }
+          let(:mock_config) { double(Object, email_attribute: :email, auth0_uid_attribute: :uid) }
 
           before do
             allow(subject).to receive(:email).and_return('bar@email.com')
+            allow(subject).to receive(:uid).and_return('auth0 user id')
             allow(subject).to receive(:auth0_sync_configuration).and_return(mock_config)
 
-            expect(SyncAttrWithAuth0::Auth0).to receive(:find_users_by_email).with('bar@email.com', mock_config).and_return(['a user'])
+            expect(SyncAttrWithAuth0::Auth0).to receive(:find_users_by_email).with('bar@email.com', exclude_user_id: 'auth0 user id', config: mock_config).and_return(['a user'])
           end
 
           it "returns the result of a search in auth0 for users with a matching email" do

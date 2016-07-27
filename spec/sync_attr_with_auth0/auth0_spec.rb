@@ -119,11 +119,22 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
     before do
       allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
       allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
-      allow(mock_client).to receive(:users).with(q: 'email:"foo@email.com"').and_return('results!')
     end
 
-    it "should return the results from the auth0 search" do
-      expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email)).to eq('results!')
+    context "when a user id is passed in to filter" do
+      before { allow(mock_client).to receive(:users).with(q: 'email:"foo@email.com" -user_id:"a user id"').and_return('results!') }
+
+      it "should return the results from the auth0 search" do
+        expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email, exclude_user_id: 'a user id')).to eq('results!')
+      end
+    end
+
+    context "when a user id is not passed in to filter" do
+      before { allow(mock_client).to receive(:users).with(q: 'email:"foo@email.com"').and_return('results!') }
+
+      it "should return the results from the auth0 search" do
+        expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email)).to eq('results!')
+      end
     end
   end # ::find_users_by_email
 

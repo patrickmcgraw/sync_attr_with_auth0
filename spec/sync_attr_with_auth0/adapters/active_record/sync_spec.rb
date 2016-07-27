@@ -297,7 +297,7 @@ module SyncAttrWithAuth0
           end
 
           it "should create the user in Auth0 and setup the uid for update locally" do
-            expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with('John Doe', mock_params, mock_config).and_return(mock_response)
+            expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with('John Doe', mock_params, config: mock_config).and_return(mock_response)
 
             subject.create_in_auth0
 
@@ -325,7 +325,7 @@ module SyncAttrWithAuth0
 
           context "when the user is found in auth0" do
             it "should update the user in Auth0 and setup the uid for update locally" do
-              expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('param uid', mock_params, mock_config).and_return(mock_response)
+              expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('param uid', mock_params, config: mock_config).and_return(mock_response)
 
               subject.update_in_auth0(user_uid)
 
@@ -334,7 +334,7 @@ module SyncAttrWithAuth0
           end
 
           context "when the user is not found in auth0" do
-            before { expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('param uid', mock_params, mock_config).and_raise(::Auth0::NotFound) }
+            before { expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('param uid', mock_params, config: mock_config).and_raise(::Auth0::NotFound) }
 
             context "when a user is found in auth0 with a matching email" do
               let(:mock_found_user) do
@@ -346,7 +346,7 @@ module SyncAttrWithAuth0
               before { allow(subject).to receive(:users_in_auth0_with_matching_email).and_return([mock_found_user]) }
 
               it "should update the user in Auth0 and setup the uid for update locally" do
-                expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('found uid', mock_params, mock_config).and_return(mock_response)
+                expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('found uid', mock_params, config: mock_config).and_return(mock_response)
 
                 subject.update_in_auth0(user_uid)
 
@@ -358,7 +358,7 @@ module SyncAttrWithAuth0
               before { allow(subject).to receive(:users_in_auth0_with_matching_email).and_return([]) }
 
               it "should create the user in Auth0 instead" do
-                expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with('John Doe', mock_params, mock_config).and_return(mock_response)
+                expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with('John Doe', mock_params, config: mock_config).and_return(mock_response)
 
                 subject.update_in_auth0(user_uid)
 

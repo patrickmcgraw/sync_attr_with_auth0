@@ -84,7 +84,7 @@ module SyncAttrWithAuth0
         def create_in_auth0
           params = auth0_create_params
 
-          response = SyncAttrWithAuth0::Auth0.create_user(auth0_user_name, params, auth0_sync_configuration)
+          response = SyncAttrWithAuth0::Auth0.create_user(auth0_user_name, params, config: auth0_sync_configuration)
 
           # Update the record with the uid after_commit
           @auth0_uid = response['user_id']
@@ -97,7 +97,7 @@ module SyncAttrWithAuth0
           params = auth0_update_params
 
           begin
-            SyncAttrWithAuth0::Auth0.patch_user(user_uid, params, auth0_sync_configuration)
+            SyncAttrWithAuth0::Auth0.patch_user(user_uid, params, config: auth0_sync_configuration)
 
             # Update the record with the uid after_commit (in case it doesn't match what's on file).
             @auth0_uid = user_uid
@@ -113,7 +113,7 @@ module SyncAttrWithAuth0
             else
               # The uid was incorrect, so re-attempt with the new uid
               # and update the one on file.
-              SyncAttrWithAuth0::Auth0.patch_user(found_user['user_id'], params, auth0_sync_configuration)
+              SyncAttrWithAuth0::Auth0.patch_user(found_user['user_id'], params, config: auth0_sync_configuration)
 
               # Update the record with the uid after_commit
               @auth0_uid = found_user['user_id']

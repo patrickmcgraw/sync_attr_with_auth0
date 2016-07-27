@@ -22,7 +22,7 @@ module SyncAttrWithAuth0
         end # validate_email_with_auth0
 
         def users_in_auth0_with_matching_email
-          return SyncAttrWithAuth0::Auth0.find_users_by_email(auth0_user_email, auth0_sync_configuration)
+          return SyncAttrWithAuth0::Auth0.find_users_by_email(auth0_user_email, exclude_user_id: auth0_user_uid, config: auth0_sync_configuration)
         end # users_in_auth0_with_matching_email
 
       end
