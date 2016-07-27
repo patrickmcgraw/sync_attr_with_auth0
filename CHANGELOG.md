@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.1
+* Updated the create to submit the app_metadata hash.
+
 ## 0.1.0
 * Updated the configuration so a config block can be used. Any setting on the model will override the config block.
 * Changed the default for the Auth0 namespace setting to look at 'AUTH0_NAMESPACE' instead of 'AUTH0_DOMAIN'.

@@ -130,6 +130,7 @@ module SyncAttrWithAuth0
 
         def auth0_create_params
           user_metadata = auth0_user_metadata
+          app_metadata = auth0_app_metadata
 
           password = auth0_user_password
 
@@ -145,7 +146,8 @@ module SyncAttrWithAuth0
             'password' => password,
             'connection' => auth0_sync_configuration.connection_name,
             'email_verified' => email_verified,
-            'user_metadata' => user_metadata
+            'user_metadata' => user_metadata,
+            'app_metadata' => app_metadata
           }
 
           return params

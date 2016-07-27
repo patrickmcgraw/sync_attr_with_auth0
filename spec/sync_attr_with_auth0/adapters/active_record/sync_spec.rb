@@ -375,9 +375,15 @@ module SyncAttrWithAuth0
               'foo' => 'bar'
             }
           end
+          let(:mock_app_metadata) do
+            {
+              'bing' => 'jazz'
+            }
+          end
 
           before do
             allow(subject).to receive(:auth0_user_metadata).and_return(mock_user_metadata)
+            allow(subject).to receive(:auth0_app_metadata).and_return(mock_app_metadata)
             allow(subject).to receive(:email).and_return('foo@email.com')
             allow(subject).to receive(:auth0_default_password).and_return('default-password')
           end
@@ -389,6 +395,7 @@ module SyncAttrWithAuth0
                 'password' => 'some password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => false,
+                'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
             end
@@ -407,6 +414,7 @@ module SyncAttrWithAuth0
                 'password' => 'default-password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => false,
+                'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
             end
@@ -453,6 +461,7 @@ module SyncAttrWithAuth0
                 'password' => 'default-password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => false,
+                'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
             end
@@ -499,6 +508,7 @@ module SyncAttrWithAuth0
                 'password' => 'default-password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => true,
+                'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
             end
