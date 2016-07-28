@@ -4,7 +4,7 @@ module SyncAttrWithAuth0
   module Adapters
     module ActiveRecord
 
-      RSpec.describe Sync do
+      RSpec.describe Auth0Sync do
 
         class SyncExample
           extend ActiveModel::Naming

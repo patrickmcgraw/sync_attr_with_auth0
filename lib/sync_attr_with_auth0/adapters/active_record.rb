@@ -1,5 +1,5 @@
 require 'sync_attr_with_auth0/adapters/active_record/validation'
-require 'sync_attr_with_auth0/adapters/active_record/sync'
+require 'sync_attr_with_auth0/adapters/active_record/auth0_sync'
 
 module SyncAttrWithAuth0
   module Adapters
@@ -7,7 +7,7 @@ module SyncAttrWithAuth0
       extend ::ActiveSupport::Concern
 
       include SyncAttrWithAuth0::Adapters::ActiveRecord::Validation
-      include SyncAttrWithAuth0::Adapters::ActiveRecord::Sync
+      include SyncAttrWithAuth0::Adapters::ActiveRecord::Auth0Sync
 
       require "uuidtools"
 

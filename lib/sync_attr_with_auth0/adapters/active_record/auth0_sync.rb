@@ -1,7 +1,7 @@
 module SyncAttrWithAuth0
   module Adapters
     module ActiveRecord
-      module Sync
+      module Auth0Sync
 
         def sync_password_with_auth0?
           !!(auth0_attributes_to_sync.index(auth0_sync_configuration.password_attribute))

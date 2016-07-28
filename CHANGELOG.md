@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.3
+* Renamed SyncAttrWithAuth0::Adapters::ActiveRecord::Sync to be Auth0Sync to prevent collisions.
+
 ## 0.1.2
 * Updated the user search to support filtering the current user's Auth0 user id from the results.
 

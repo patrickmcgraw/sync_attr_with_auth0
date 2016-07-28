@@ -1,6 +1,6 @@
 Gem::Specification.new do |gem|
   gem.name          = 'sync_attr_with_auth0'
-  gem.version       = '0.1.2'
+  gem.version       = '0.1.3'
   gem.date          = '2016-07-26'
   gem.summary       = "Synchronize attributes on a local ActiveRecord user model with the user metadata store on Auth0"
   gem.description   = gem.summary
@@ -11,7 +11,7 @@ Gem::Specification.new do |gem|
     "lib/sync_attr_with_auth0/auth0.rb",
     "lib/sync_attr_with_auth0/configuration.rb",
     "lib/sync_attr_with_auth0/adapters/active_record.rb",
-    "lib/sync_attr_with_auth0/adapters/active_record/sync.rb",
+    "lib/sync_attr_with_auth0/adapters/active_record/auth0_sync.rb",
     "lib/sync_attr_with_auth0/adapters/active_record/validation.rb"
   ]
   gem.homepage      = 'http://rubygems.org/gems/sync_attr_with_auth0'
