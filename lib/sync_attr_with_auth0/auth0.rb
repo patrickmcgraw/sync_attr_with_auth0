@@ -66,13 +66,14 @@ module SyncAttrWithAuth0
 
     def self.find_users_by_email(email, exclude_user_id: nil, config: SyncAttrWithAuth0.configuration)
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(config: config)
-      query_string = "email:\"#{email}\""
 
-      unless exclude_user_id.nil?
-        query_string += " -user_id:\"#{exclude_user_id}\""
+      results = auth0.get('/api/v2/users-by-email', email: email)
+
+      if exclude_user_id
+        results = results.reject { |r| r['user_id'] == exclude_user_id }
       end
 
-      return auth0.users(q: query_string)
+      return results
     end # ::find_users_by_email
 
 
