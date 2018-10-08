@@ -122,7 +122,7 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
     before do
       allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
       allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
-      allow(mock_client).to receive(:get).with('/api/v2/users-by-email', email: "foo@email.com").and_return(mock_results)
+      allow(mock_client).to receive(:get).with('/api/v2/users', q: "email:foo@email.com").and_return(mock_results)
     end
 
     context "when a user id is passed in to filter" do
