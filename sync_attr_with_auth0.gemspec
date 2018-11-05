@@ -24,7 +24,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'activesupport', '>= 4.0.0'
   gem.add_dependency 'uuidtools', '2.1.5'
   gem.add_dependency 'auth0'
-  gem.add_dependency 'jwt', '1.5.0'
+  gem.add_dependency 'jwt', '~> 1.5.0'
 
   gem.add_development_dependency 'rails', '>= 4.0.0'
   gem.add_development_dependency 'rspec-rails', '~> 3.0'
