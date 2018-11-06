@@ -181,14 +181,9 @@ module SyncAttrWithAuth0
 
         def update_uid_from_auth0
           if @auth0_uid
-            self.sync_with_auth0_on_update = false if self.respond_to?(:sync_with_auth0_on_update=)
-            self.send("#{auth0_sync_configuration.auth0_uid_attribute}=", @auth0_uid)
-
-            # Nil the instance variable to prevent an infinite loop
+            attr = auth0_sync_configuration.auth0_uid_attribute
+            update_column attr, @auth0_uid unless @auth0_uid == public_send(attr)
             @auth0_uid = nil
-
-            # Save!
-            self.save
           end
 
           true # don't abort the callback chain
