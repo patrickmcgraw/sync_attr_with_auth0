@@ -29,6 +29,7 @@ module SyncAttrWithAuth0
           define_attribute_methods(*attributes_array)
 
           def save; end;
+          def update_column attr, val; end
 
           sync_attr_with_auth0 :name, :foo, :undefined_attribute,
             auth0_uid_attribute: :uid
@@ -601,8 +602,7 @@ module SyncAttrWithAuth0
             before { subject.instance_variable_set(:@auth0_uid, 'auth0|user_id') }
 
             it "should update the user with the auth0 user id and return true" do
-              expect(subject).to receive(:uid=).with('auth0|user_id')
-              expect(subject).to receive(:save).and_return(true)
+              expect(subject).to receive(:update_column).with :uid, 'auth0|user_id'
 
               expect(subject.update_uid_from_auth0).to eq(true)
               expect(subject.instance_variable_get(:@auth0_uid)).to eq(nil)
