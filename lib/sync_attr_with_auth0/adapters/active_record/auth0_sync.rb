@@ -23,40 +23,50 @@ module SyncAttrWithAuth0
         end # sync_with_auth0_on_update?
 
 
-        def save_to_auth0_on_create
+        def save_to_auth0_after_create
           return true unless sync_with_auth0_on_create?
 
           save_to_auth0
 
           true # don't abort the callback chain
-        end # save_to_auth0_on_create
+        end # save_to_auth0_after_create
 
 
-        def save_to_auth0_on_update
+        def save_to_auth0_after_update
           return true unless sync_with_auth0_on_update?
-          return true unless auth0_dirty?
+          return true unless auth0_saved_changes_dirty?
 
           save_to_auth0
 
           true # don't abort the callback chain
-        end # save_to_auth0_on_update
+        end # save_to_auth0_after_update
 
 
-        def auth0_dirty?
-          is_dirty = !!(
-            auth0_attributes_to_sync.inject(false) do |memo, attrib|
-              memo || self.try("#{attrib}_changed?")
+        def auth0_saved_changes_dirty?
+          is_dirty = auth0_attributes_to_sync.any? do |attrib|
+            if respond_to? :"saved_changes_to_#{attrib}?"
+              # Prefer modern method
+              public_send :"saved_changes_to_#{attrib}?"
+            elsif respond_to? :"#{attrib}_changed?"
+              # Legacy method. Drop when no longer supporting <= Rails 5.1
+              public_send :"#{attrib}_changed?"
+            else
+              # Specs currently verify attributes specified as needing synced
+              # that are not defined not cause an error. I'm not sure why we
+              # need this. Seems like a misconfiguration and we should blow
+              # up. But to limit scope of change keeping with defined behavior.
+              false
             end
-          )
+          end
 
           # If the password was changed, force is_dirty to be true
-          is_dirty = true if auth0_user_password_changed?
+          is_dirty = true if auth0_user_saved_changes_to_password?
 
           # If the email was changed, force is_dirty to be true
-          is_dirty = true if auth0_user_email_changed?
+          is_dirty = true if auth0_user_saved_changes_to_email?
 
           return is_dirty
-        end # auth0_dirty?
+        end # auth0_saved_changes_dirty?
 
 
         def save_to_auth0
@@ -163,13 +173,13 @@ module SyncAttrWithAuth0
             'user_metadata' => user_metadata
           }
 
-          if auth0_user_password_changed?
+          if auth0_user_saved_changes_to_password?
             # The password needs to be updated.
             params['password'] = auth0_user_password
             params['verify_password'] = auth0_verify_password?
           end
 
-          if auth0_user_email_changed?
+          if auth0_user_saved_changes_to_email?
             # The email needs to be updated.
             params['email'] = auth0_user_email
             params['verify_email'] = auth0_email_verified?

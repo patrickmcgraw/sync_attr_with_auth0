@@ -33,8 +33,8 @@ module SyncAttrWithAuth0
 
           # Setup callbacks
           after_validation :validate_email_with_auth0
-          after_create :save_to_auth0_on_create
-          after_update :save_to_auth0_on_update
+          after_create :save_to_auth0_after_create
+          after_update :save_to_auth0_after_update
           after_commit :update_uid_from_auth0
         end # sync_attr_with_auth0
 
@@ -52,12 +52,18 @@ module SyncAttrWithAuth0
       end # auth0_user_email
 
 
-      def auth0_user_email_changed?
+      def auth0_user_saved_changes_to_email?
         return false unless self.respond_to?(auth0_sync_configuration.email_attribute)
         # return false unless sync_email_with_auth0? # We don't care if it changed if we aren't syncing it.
 
-        return self.send("#{auth0_sync_configuration.email_attribute}_changed?")
-      end # auth0_email_changed?
+        if respond_to? :"saved_changes_to_#{auth0_sync_configuration.email_attribute}?"
+          # Modern method
+          public_send :"saved_changes_to_#{auth0_sync_configuration.email_attribute}?"
+        else
+          # Legacy method. Drop when no longer supporting <= Rails 5.1
+          public_send :"#{auth0_sync_configuration.email_attribute}_changed?"
+        end
+      end # auth0_user_saved_changes_to_email?
 
 
       def auth0_user_uid
@@ -85,18 +91,21 @@ module SyncAttrWithAuth0
       end # auth0_user_password
 
 
-      def auth0_user_password_changed?
+      def auth0_user_saved_changes_to_password?
         return false unless self.respond_to?(auth0_sync_configuration.password_attribute)
-        # return false unless sync_password_with_auth0? # We don't care if it changed if we aren't syncing it.
 
-        if self.respond_to?(:"#{auth0_sync_configuration.password_attribute.to_s}_changed?")
-          # We have a changed method, use it
-          return self.send(:"#{auth0_sync_configuration.password_attribute.to_s}_changed?")
-        else
-          # We don't have a changed method, check if the attribute was set.
-          return !self.send(auth0_sync_configuration.password_attribute).nil?
+        case
+          when respond_to?(:"saved_changes_to_#{auth0_sync_configuration.password_attribute}?")
+            # Prefer modern method
+            public_send :"saved_changes_to_#{auth0_sync_configuration.password_attribute}?"
+          when respond_to?(:"#{auth0_sync_configuration.password_attribute}_changed?")
+            # Legacy method. Drop when no longer supporting <= Rails 5.1
+            public_send :"#{auth0_sync_configuration.password_attribute}_changed?"
+          else
+            # Neither exists so must be in-memory accessor. Just check if set.
+            public_send(auth0_sync_configuration.password_attribute).present?
         end
-      end # auth0_user_password_changed?
+      end # auth0_user_saved_changes_to_password?
 
 
       def auth0_default_password

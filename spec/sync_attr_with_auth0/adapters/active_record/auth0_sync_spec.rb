@@ -139,7 +139,7 @@ module SyncAttrWithAuth0
             end
 
             it "should skip the save and return true" do
-              expect(subject.save_to_auth0_on_create).to eq(true)
+              expect(subject.save_to_auth0_after_create).to eq(true)
             end
           end
 
@@ -151,7 +151,7 @@ module SyncAttrWithAuth0
             end
 
             it "should continue with the save and return true" do
-              expect(subject.save_to_auth0_on_create).to eq(true)
+              expect(subject.save_to_auth0_after_create).to eq(true)
             end
           end
         end # save_to_auth0_on_create
@@ -166,7 +166,7 @@ module SyncAttrWithAuth0
             end
 
             it "should skip the save and return true" do
-              expect(subject.save_to_auth0_on_update).to eq(true)
+              expect(subject.save_to_auth0_after_update).to eq(true)
             end
           end
 
@@ -175,38 +175,38 @@ module SyncAttrWithAuth0
 
             context "when the model has not changed" do
               before do
-                allow(subject).to receive(:auth0_dirty?).and_return(false)
+                allow(subject).to receive(:auth0_saved_changes_dirty?).and_return(false)
 
                 expect(subject).to_not receive(:save_to_auth0)
               end
 
               it "should skip the save and return true" do
-                expect(subject.save_to_auth0_on_update).to eq(true)
+                expect(subject.save_to_auth0_after_update).to eq(true)
               end
             end
 
             context "when the model has changed" do
               before do
-                allow(subject).to receive(:auth0_dirty?).and_return(true)
+                allow(subject).to receive(:auth0_saved_changes_dirty?).and_return(true)
 
                 expect(subject).to receive(:save_to_auth0)
               end
 
               it "should continue with the save and return true" do
-                expect(subject.save_to_auth0_on_update).to eq(true)
+                expect(subject.save_to_auth0_after_update).to eq(true)
               end
             end
           end
         end # save_to_auth0_on_update
 
 
-        describe "#auth0_dirty?" do
+        describe "#auth0_saved_changes_dirty?" do
           context "when no auth0 attributes are changed" do
             before { subject.bar_will_change! }
 
             it "should return false" do
               expect(subject.changed?).to eq(true)
-              expect(subject.auth0_dirty?).to eq(false)
+              expect(subject.auth0_saved_changes_dirty?).to eq(false)
             end
           end
 
@@ -215,7 +215,7 @@ module SyncAttrWithAuth0
 
             it "should return true" do
               expect(subject.changed?).to eq(true)
-              expect(subject.auth0_dirty?).to eq(true)
+              expect(subject.auth0_saved_changes_dirty?).to eq(true)
             end
           end
 
@@ -224,7 +224,7 @@ module SyncAttrWithAuth0
 
             it "should return true" do
               expect(subject.changed?).to eq(true)
-              expect(subject.auth0_dirty?).to eq(true)
+              expect(subject.auth0_saved_changes_dirty?).to eq(true)
             end
           end
 
@@ -233,7 +233,7 @@ module SyncAttrWithAuth0
 
             it "should return true" do
               expect(subject.changed?).to eq(true)
-              expect(subject.auth0_dirty?).to eq(true)
+              expect(subject.auth0_saved_changes_dirty?).to eq(true)
             end
           end
         end # auth0_dirty?
@@ -567,7 +567,7 @@ module SyncAttrWithAuth0
               }
             end
 
-            before { allow(subject).to receive(:auth0_user_password_changed?).and_return(true) }
+            before { allow(subject).to receive(:auth0_user_saved_changes_to_password?).and_return(true) }
 
             it "return the params with app and user metadata and password data" do
               # Test performed by after block.
@@ -584,7 +584,7 @@ module SyncAttrWithAuth0
               }
             end
 
-            before { allow(subject).to receive(:auth0_user_email_changed?).and_return(true) }
+            before { allow(subject).to receive(:auth0_user_saved_changes_to_email?).and_return(true) }
 
             it "return the params with app and user metadata and email data" do
               # Test performed by after block.
