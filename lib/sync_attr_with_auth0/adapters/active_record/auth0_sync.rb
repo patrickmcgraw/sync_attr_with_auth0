@@ -34,7 +34,7 @@ module SyncAttrWithAuth0
 
         def save_to_auth0_after_update
           return true unless sync_with_auth0_on_update?
-          return true unless auth0_saved_changes_dirty?
+          return true unless auth0_saved_change_dirty?
 
           save_to_auth0
 
@@ -42,11 +42,11 @@ module SyncAttrWithAuth0
         end # save_to_auth0_after_update
 
 
-        def auth0_saved_changes_dirty?
+        def auth0_saved_change_dirty?
           is_dirty = auth0_attributes_to_sync.any? do |attrib|
-            if respond_to? :"saved_changes_to_#{attrib}?"
+            if respond_to? :"saved_change_to_#{attrib}?"
               # Prefer modern method
-              public_send :"saved_changes_to_#{attrib}?"
+              public_send :"saved_change_to_#{attrib}?"
             elsif respond_to? :"#{attrib}_changed?"
               # Legacy method. Drop when no longer supporting <= Rails 5.1
               public_send :"#{attrib}_changed?"
@@ -60,13 +60,13 @@ module SyncAttrWithAuth0
           end
 
           # If the password was changed, force is_dirty to be true
-          is_dirty = true if auth0_user_saved_changes_to_password?
+          is_dirty = true if auth0_user_saved_change_to_password?
 
           # If the email was changed, force is_dirty to be true
-          is_dirty = true if auth0_user_saved_changes_to_email?
+          is_dirty = true if auth0_user_saved_change_to_email?
 
           return is_dirty
-        end # auth0_saved_changes_dirty?
+        end # auth0_saved_change_dirty?
 
 
         def save_to_auth0
@@ -173,13 +173,13 @@ module SyncAttrWithAuth0
             'user_metadata' => user_metadata
           }
 
-          if auth0_user_saved_changes_to_password?
+          if auth0_user_saved_change_to_password?
             # The password needs to be updated.
             params['password'] = auth0_user_password
             params['verify_password'] = auth0_verify_password?
           end
 
-          if auth0_user_saved_changes_to_email?
+          if auth0_user_saved_change_to_email?
             # The email needs to be updated.
             params['email'] = auth0_user_email
             params['verify_email'] = auth0_email_verified?
