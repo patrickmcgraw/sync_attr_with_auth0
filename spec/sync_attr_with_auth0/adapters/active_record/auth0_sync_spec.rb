@@ -21,7 +21,7 @@ module SyncAttrWithAuth0
           include ::SyncAttrWithAuth0::Adapters::ActiveRecord
 
           attributes_array = [:email, :password, :given_name, :family_name,
-                              :name, :uid, :foo, :bar,
+                              :name, :uid, :foo, :bar, :picture,
                               :sync_with_auth0_on_create,
                               :sync_with_auth0_on_update]
 
@@ -29,7 +29,7 @@ module SyncAttrWithAuth0
           define_attribute_methods(*attributes_array)
 
           def save; end;
-          def update_column attr, val; end
+          def update_columns attrs; end
 
           sync_attr_with_auth0 :name, :foo, :undefined_attribute,
             auth0_uid_attribute: :uid
@@ -597,24 +597,45 @@ module SyncAttrWithAuth0
         end # auth0_update_params
 
 
-        describe "#update_uid_from_auth0" do
-          context "when the instance variable is set" do
-            before { subject.instance_variable_set(:@auth0_uid, 'auth0|user_id') }
+        describe "#update_uid_and_picture_from_auth0" do
+          describe 'auth0_uid update' do
+            context "when the instance variable is set" do
+              before { subject.instance_variable_set(:@auth0_uid, 'auth0|user_id') }
 
-            it "should update the user with the auth0 user id and return true" do
-              expect(subject).to receive(:update_column).with :uid, 'auth0|user_id'
+              it "should update the user with the auth0 user id and return true" do
+                expect(subject).to receive(:update_columns).with uid: 'auth0|user_id'
 
-              expect(subject.update_uid_from_auth0).to eq(true)
-              expect(subject.instance_variable_get(:@auth0_uid)).to eq(nil)
+                expect(subject.update_uid_and_picture_from_auth0).to eq(true)
+                expect(subject.instance_variable_get(:@auth0_uid)).to eq(nil)
+              end
+            end
+
+            context "when the instance variable is not set" do
+              it "should do nothing and return true" do
+                expect(subject.update_uid_and_picture_from_auth0).to eq(true)
+              end
             end
           end
 
-          context "when the instance variable is not set" do
-            it "should do nothing and return true" do
-              expect(subject.update_uid_from_auth0).to eq(true)
+          describe 'picture update' do
+            context "when the instance variable is set" do
+              before { subject.instance_variable_set(:@auth0_picture, 'https://api.adorable.io/avatars/285/jane@example.com') }
+
+              it "should update the user with the auth0 user id and return true" do
+                expect(subject).to receive(:update_columns).with picture: 'https://api.adorable.io/avatars/285/jane@example.com'
+
+                expect(subject.update_uid_and_picture_from_auth0).to eq(true)
+                expect(subject.instance_variable_get(:@auth0_picture)).to eq(nil)
+              end
+            end
+
+            context "when the instance variable is not set" do
+              it "should do nothing and return true" do
+                expect(subject.update_uid_and_picture_from_auth0).to eq(true)
+              end
             end
           end
-        end # update_uid_from_auth0
+        end # update_uid_and_picture_from_auth0
 
       end # describe Sync
 

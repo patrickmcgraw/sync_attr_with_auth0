@@ -35,7 +35,7 @@ module SyncAttrWithAuth0
           after_validation :validate_email_with_auth0
           after_create :save_to_auth0_after_create
           after_update :save_to_auth0_after_update
-          after_commit :update_uid_from_auth0
+          after_commit :update_uid_and_picture_from_auth0
         end # sync_attr_with_auth0
 
       end # ClassMethods
@@ -70,6 +70,9 @@ module SyncAttrWithAuth0
         self.send(auth0_sync_configuration.auth0_uid_attribute) if self.respond_to?(auth0_sync_configuration.auth0_uid_attribute)
       end # auth0_user_uid
 
+      def auth0_picture
+        public_send auth0_sync_configuration.picture_attribute if respond_to? auth0_sync_configuration.picture_attribute
+      end
 
       def auth0_user_name
         self.send(auth0_sync_configuration.name_attribute) if self.respond_to?(auth0_sync_configuration.name_attribute)

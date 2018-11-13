@@ -31,7 +31,7 @@ module SyncAttrWithAuth0
       :auth0_client_id, :auth0_client_secret, :auth0_namespace,
       :auth0_uid_attribute, :name_attribute, :given_name_attribute,
       :family_name_attribute, :email_attribute, :password_attribute,
-      :email_verified_attribute, :verify_password_attribute,
+      :email_verified_attribute, :verify_password_attribute, :picture_attribute,
       :connection_name
 
 
@@ -50,6 +50,7 @@ module SyncAttrWithAuth0
       @password_attribute = :password
       @email_verified_attribute = :email_verified
       @verify_password_attribute = :verify_password
+      @picture_attribute = :picture
       @connection_name = 'Username-Password-Authentication'
     end
   end
