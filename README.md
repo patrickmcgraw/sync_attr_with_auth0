@@ -53,6 +53,9 @@ There were significant changes to the configuration and usage of the gem as of v
 **verify_password_attribute** (default = :verify_password)
 :   A symbol of the attribute containing if the password needs to be verified.
 
+**picture_attribute** (default = :picture)
+:   A symbol of the attribute containing the Auth0 picture.
+
 **connection_name** (default = 'Username-Password-Authentication')
 :   A string containing the database connection name.
 

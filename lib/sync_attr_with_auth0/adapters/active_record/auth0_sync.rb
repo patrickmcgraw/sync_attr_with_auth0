@@ -23,40 +23,50 @@ module SyncAttrWithAuth0
         end # sync_with_auth0_on_update?
 
 
-        def save_to_auth0_on_create
+        def save_to_auth0_after_create
           return true unless sync_with_auth0_on_create?
 
           save_to_auth0
 
           true # don't abort the callback chain
-        end # save_to_auth0_on_create
+        end # save_to_auth0_after_create
 
 
-        def save_to_auth0_on_update
+        def save_to_auth0_after_update
           return true unless sync_with_auth0_on_update?
-          return true unless auth0_dirty?
+          return true unless auth0_saved_change_dirty?
 
           save_to_auth0
 
           true # don't abort the callback chain
-        end # save_to_auth0_on_update
+        end # save_to_auth0_after_update
 
 
-        def auth0_dirty?
-          is_dirty = !!(
-            auth0_attributes_to_sync.inject(false) do |memo, attrib|
-              memo || self.try("#{attrib}_changed?")
+        def auth0_saved_change_dirty?
+          is_dirty = auth0_attributes_to_sync.any? do |attrib|
+            if respond_to? :"saved_change_to_#{attrib}?"
+              # Prefer modern method
+              public_send :"saved_change_to_#{attrib}?"
+            elsif respond_to? :"#{attrib}_changed?"
+              # Legacy method. Drop when no longer supporting <= Rails 5.1
+              public_send :"#{attrib}_changed?"
+            else
+              # Specs currently verify attributes specified as needing synced
+              # that are not defined not cause an error. I'm not sure why we
+              # need this. Seems like a misconfiguration and we should blow
+              # up. But to limit scope of change keeping with defined behavior.
+              false
             end
-          )
+          end
 
           # If the password was changed, force is_dirty to be true
-          is_dirty = true if auth0_user_password_changed?
+          is_dirty = true if auth0_user_saved_change_to_password?
 
           # If the email was changed, force is_dirty to be true
-          is_dirty = true if auth0_user_email_changed?
+          is_dirty = true if auth0_user_saved_change_to_email?
 
           return is_dirty
-        end # auth0_dirty?
+        end # auth0_saved_change_dirty?
 
 
         def save_to_auth0
@@ -86,8 +96,9 @@ module SyncAttrWithAuth0
 
           response = SyncAttrWithAuth0::Auth0.create_user(auth0_user_name, params, config: auth0_sync_configuration)
 
-          # Update the record with the uid after_commit
+          # Update the record with the uid and picture after_commit
           @auth0_uid = response['user_id']
+          @auth0_picture = response['picture']
         end # create_in_auth0
 
 
@@ -97,10 +108,11 @@ module SyncAttrWithAuth0
           params = auth0_update_params
 
           begin
-            SyncAttrWithAuth0::Auth0.patch_user(user_uid, params, config: auth0_sync_configuration)
+            response = SyncAttrWithAuth0::Auth0.patch_user(user_uid, params, config: auth0_sync_configuration)
 
             # Update the record with the uid after_commit (in case it doesn't match what's on file).
             @auth0_uid = user_uid
+            @auth0_picture = response['picture']
           rescue ::Auth0::NotFound => e
             # For whatever reason, the passed in uid was invalid,
             # determine how to proceed.
@@ -113,10 +125,11 @@ module SyncAttrWithAuth0
             else
               # The uid was incorrect, so re-attempt with the new uid
               # and update the one on file.
-              SyncAttrWithAuth0::Auth0.patch_user(found_user['user_id'], params, config: auth0_sync_configuration)
+              response = SyncAttrWithAuth0::Auth0.patch_user(found_user['user_id'], params, config: auth0_sync_configuration)
 
               # Update the record with the uid after_commit
               @auth0_uid = found_user['user_id']
+              @auth0_picture = response['picture']
             end
 
           rescue Exception => e
@@ -163,13 +176,13 @@ module SyncAttrWithAuth0
             'user_metadata' => user_metadata
           }
 
-          if auth0_user_password_changed?
+          if auth0_user_saved_change_to_password?
             # The password needs to be updated.
             params['password'] = auth0_user_password
             params['verify_password'] = auth0_verify_password?
           end
 
-          if auth0_user_email_changed?
+          if auth0_user_saved_change_to_email?
             # The email needs to be updated.
             params['email'] = auth0_user_email
             params['verify_email'] = auth0_email_verified?
@@ -179,20 +192,26 @@ module SyncAttrWithAuth0
         end # auth0_update_params
 
 
-        def update_uid_from_auth0
+        def update_uid_and_picture_from_auth0
+          data = {}
+
           if @auth0_uid
-            self.sync_with_auth0_on_update = false if self.respond_to?(:sync_with_auth0_on_update=)
-            self.send("#{auth0_sync_configuration.auth0_uid_attribute}=", @auth0_uid)
-
-            # Nil the instance variable to prevent an infinite loop
-            @auth0_uid = nil
-
-            # Save!
-            self.save
+            attr = auth0_sync_configuration.auth0_uid_attribute
+            data[attr] = @auth0_uid if respond_to?(attr) && @auth0_uid != public_send(attr)
           end
 
+          if @auth0_picture
+            attr = auth0_sync_configuration.picture_attribute
+            data[attr] = @auth0_picture if respond_to?(attr) && @auth0_picture != public_send(attr)
+          end
+
+          update_columns data unless data.empty?
+
+          remove_instance_variable :@auth0_uid if defined? @auth0_uid
+          remove_instance_variable :@auth0_picture if defined? @auth0_picture
+
           true # don't abort the callback chain
-        end # update_uid_from_auth0
+        end # update_uid_and_picture_from_auth0
 
       end
     end
