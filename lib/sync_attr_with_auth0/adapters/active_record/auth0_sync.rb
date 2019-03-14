@@ -185,7 +185,7 @@ module SyncAttrWithAuth0
           if auth0_user_saved_change_to_email?
             # The email needs to be updated.
             params['email'] = auth0_user_email
-            params['verify_email'] = auth0_email_verified?
+            params['verify_email'] = !auth0_email_verified?
           end
 
           return params

@@ -575,19 +575,40 @@ module SyncAttrWithAuth0
           end
 
           context "when the email is changed" do
-            let(:expected_response) do
-              {
-                'app_metadata' => { 'bing' => 'jazz' },
-                'user_metadata' => { 'foo' => 'bar' },
-                'email' => 'foo@email.com',
-                'verify_email' => false
-              }
-            end
-
             before { allow(subject).to receive(:auth0_user_saved_change_to_email?).and_return(true) }
 
-            it "return the params with app and user metadata and email data" do
-              # Test performed by after block.
+            context "when the user's email is verified" do
+              before { allow(subject).to receive(:auth0_email_verified?).and_return(true) }
+
+              let(:expected_response) do
+                {
+                  'app_metadata' => { 'bing' => 'jazz' },
+                  'user_metadata' => { 'foo' => 'bar' },
+                  'email' => 'foo@email.com',
+                  'verify_email' => false
+                }
+              end
+
+              it "return the params with app and user metadata and email data and not send the verification email" do
+                # Test performed by after block.
+              end
+            end
+
+            context "when the user's email is not verified" do
+              before { allow(subject).to receive(:auth0_email_verified?).and_return(false) }
+
+              let(:expected_response) do
+                {
+                  'app_metadata' => { 'bing' => 'jazz' },
+                  'user_metadata' => { 'foo' => 'bar' },
+                  'email' => 'foo@email.com',
+                  'verify_email' => true
+                }
+              end
+
+              it "return the params with app and user metadata and email data and send the verification email" do
+                # Test performed by after block.
+              end
             end
           end
 
