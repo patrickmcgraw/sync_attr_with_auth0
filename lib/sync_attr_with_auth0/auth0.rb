@@ -68,7 +68,14 @@ module SyncAttrWithAuth0
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(config: config)
 
       # Use the Lucene search because Find by Email is case sensitive
-      results = auth0.get('/api/v2/users', q: "email:#{email}", search_engine: 'v3')
+      results = auth0.get(
+        '/api/v2/users',
+        q: %Q{
+          email:#{email} AND
+          identities.connection:"#{config.connection_name}"
+        },
+        search_engine: 'v3'
+      )
 
       if exclude_user_id
         results = results.reject { |r| r['user_id'] == exclude_user_id }
