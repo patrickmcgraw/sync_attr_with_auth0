@@ -59,6 +59,9 @@ There were significant changes to the configuration and usage of the gem as of v
 **connection_name** (default = 'Username-Password-Authentication')
 :   A string containing the database connection name.
 
+**search_connections** (default = [])
+:   A list of connection names to search when finding existing users. If left
+    empty all users will be searched.
 
 ### Example
 ``` ruby
@@ -99,6 +102,10 @@ SyncAttrWithAuth0.configure do |config|
   # To set the default connection name for Auth0
   #
   # config.connection_name = 'Username-Password-Authentication'
+
+  # To set the connection to search for existing users
+  #
+  # config.search_connections = ['Username-Password-Authentication']
 
   # To set the default attribute names
   #
