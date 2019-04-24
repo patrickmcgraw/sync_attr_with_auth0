@@ -110,7 +110,8 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
           auth0_global_client_secret: 'global client secret',
           auth0_client_id: 'client id',
           auth0_client_secret: 'client secret',
-          auth0_namespace: 'namespace'
+          auth0_namespace: 'namespace',
+          search_connections: [],
         }
       )
     end
@@ -122,17 +123,34 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
     before do
       allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
       allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
-      allow(mock_client).to receive(:get).with('/api/v2/users', q: "email:foo@email.com").and_return(mock_results)
+
     end
 
-    context "when a user id is passed in to filter" do
-      it "should return the results from the auth0 search" do
-        expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email, exclude_user_id: 'a user id')).to eq([mock_result2])
+    context 'without specified search connections' do
+      before do
+        allow(mock_client).to receive(:get).with('/api/v2/users', q: "email:foo@email.com", search_engine: 'v3').and_return(mock_results)
+      end
+
+      context "when a user id is passed in to filter" do
+        it "should return the results from the auth0 search" do
+          expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email, exclude_user_id: 'a user id')).to eq([mock_result2])
+        end
+      end
+
+      context "when a user id is not passed in to filter" do
+        it "should return the results from the auth0 search" do
+          expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email)).to eq(mock_results)
+        end
       end
     end
 
-    context "when a user id is not passed in to filter" do
-      it "should return the results from the auth0 search" do
+    context 'with specified search connections' do
+      before do
+        mock_config.search_connections << 'User-DB-1' << 'User-DB-2'
+        allow(mock_client).to receive(:get).with('/api/v2/users', q: %Q{email:foo@email.com AND (identities.connection:"User-DB-1" OR identities.connection:"User-DB-2")}, search_engine: 'v3').and_return(mock_results)
+      end
+
+      it 'should add connections to criteria' do
         expect(SyncAttrWithAuth0::Auth0.find_users_by_email(email)).to eq(mock_results)
       end
     end
