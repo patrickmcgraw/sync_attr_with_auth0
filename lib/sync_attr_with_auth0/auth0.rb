@@ -14,7 +14,7 @@ module SyncAttrWithAuth0
           }
         },
         'iat' => Time.now.to_i,
-        'jti' => UUIDTools::UUID.timestamp_create.to_s
+        'jti' => UUIDTools::UUID.random_create.to_s
       }
 
       jwt = JWT.encode(payload, JWT.base64url_decode(global_client_secret))
