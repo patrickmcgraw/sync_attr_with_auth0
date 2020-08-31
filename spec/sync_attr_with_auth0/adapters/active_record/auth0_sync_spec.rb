@@ -386,6 +386,9 @@ module SyncAttrWithAuth0
             allow(subject).to receive(:auth0_user_metadata).and_return(mock_user_metadata)
             allow(subject).to receive(:auth0_app_metadata).and_return(mock_app_metadata)
             allow(subject).to receive(:email).and_return('foo@email.com')
+            allow(subject).to receive(:given_name).and_return('John')
+            allow(subject).to receive(:family_name).and_return('Doe')
+            allow(subject).to receive(:name).and_return('John Doe')
             allow(subject).to receive(:auth0_default_password).and_return('default-password')
           end
 
@@ -396,6 +399,10 @@ module SyncAttrWithAuth0
                 'password' => 'some password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => false,
+                'family_name' => 'Doe',
+                'given_name' => 'John',
+                'name' => 'John Doe',
+                'nickname' => 'John Doe',
                 'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
@@ -415,6 +422,10 @@ module SyncAttrWithAuth0
                 'password' => 'default-password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => false,
+                'family_name' => 'Doe',
+                'given_name' => 'John',
+                'name' => 'John Doe',
+                'nickname' => 'John Doe',
                 'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
@@ -462,6 +473,10 @@ module SyncAttrWithAuth0
                 'password' => 'default-password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => false,
+                'family_name' => 'Doe',
+                'given_name' => 'John',
+                'name' => 'John Doe',
+                'nickname' => 'John Doe',
                 'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
@@ -509,6 +524,10 @@ module SyncAttrWithAuth0
                 'password' => 'default-password',
                 'connection' => 'Username-Password-Authentication',
                 'email_verified' => true,
+                'family_name' => 'Doe',
+                'given_name' => 'John',
+                'name' => 'John Doe',
+                'nickname' => 'John Doe',
                 'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
@@ -542,11 +561,18 @@ module SyncAttrWithAuth0
             allow(subject).to receive(:auth0_app_metadata).and_return(mock_app_metadata)
             allow(subject).to receive(:email).and_return('foo@email.com')
             allow(subject).to receive(:password).and_return('some password')
+            allow(subject).to receive(:given_name).and_return('John')
+            allow(subject).to receive(:family_name).and_return('Doe')
+            allow(subject).to receive(:name).and_return('John Doe')
           end
 
           context "when the password and email are not changed" do
             let(:expected_response) do
               {
+                'family_name' => 'Doe',
+                'given_name' => 'John',
+                'name' => 'John Doe',
+                'nickname' => 'John Doe',
                 'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' }
               }
@@ -560,6 +586,10 @@ module SyncAttrWithAuth0
           context "when the password is changed" do
             let(:expected_response) do
               {
+                'family_name' => 'Doe',
+                'given_name' => 'John',
+                'name' => 'John Doe',
+                'nickname' => 'John Doe',
                 'app_metadata' => { 'bing' => 'jazz' },
                 'user_metadata' => { 'foo' => 'bar' },
                 'password' => 'some password',
@@ -582,6 +612,10 @@ module SyncAttrWithAuth0
 
               let(:expected_response) do
                 {
+                  'family_name' => 'Doe',
+                  'given_name' => 'John',
+                  'name' => 'John Doe',
+                  'nickname' => 'John Doe',
                   'app_metadata' => { 'bing' => 'jazz' },
                   'user_metadata' => { 'foo' => 'bar' },
                   'email' => 'foo@email.com',
@@ -599,6 +633,10 @@ module SyncAttrWithAuth0
 
               let(:expected_response) do
                 {
+                  'family_name' => 'Doe',
+                  'given_name' => 'John',
+                  'name' => 'John Doe',
+                  'nickname' => 'John Doe',
                   'app_metadata' => { 'bing' => 'jazz' },
                   'user_metadata' => { 'foo' => 'bar' },
                   'email' => 'foo@email.com',
