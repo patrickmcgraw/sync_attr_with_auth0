@@ -159,6 +159,10 @@ module SyncAttrWithAuth0
             'password' => password,
             'connection' => auth0_sync_configuration.connection_name,
             'email_verified' => email_verified,
+            'name' => auth0_user_name,
+            'nickname' => auth0_user_name,
+            'given_name' => auth0_user_given_name,
+            'family_name' => auth0_user_family_name,
             'user_metadata' => user_metadata,
             'app_metadata' => app_metadata
           }
@@ -172,6 +176,10 @@ module SyncAttrWithAuth0
           app_metadata = auth0_app_metadata
 
           params = {
+            'name' => auth0_user_name,
+            'nickname' => auth0_user_name,
+            'given_name' => auth0_user_given_name,
+            'family_name' => auth0_user_family_name,
             'app_metadata' => app_metadata,
             'user_metadata' => user_metadata
           }

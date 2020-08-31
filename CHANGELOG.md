@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.2
+* Updated the versions of various gem dependencies.
+* Updated the user sync to store the user name fields directly on the user. We'll remove them from the app_metadata in a future version.
+
+## 0.2.1
+* Replacing calls to UUIDTools::UUID.timestamp_create to be UUIDTools::UUID.random_create instead to resolve an error with GCloud hosting.
+
+## 0.2.0
+* No Changes (version bump).
+
+## 0.1.9
+* Updated the update_user call to not send the verification email if the email is already verified.
+
+## 0.1.8
+* Removed specific version requirement for json gem.
+* Loosened the jwt gem version dependency.
+
+## 0.1.7
+* Fixing issue with email uniqueness validation finding unrelated email addresses.
+
+## 0.1.6
+* Updating SyncAttrWithAuth0::Auth0#find_by_users back to using a lucene email search.
+
+## 0.1.5
+* Updating SyncAttrWithAuth0::Auth0#find_by_users to use new v2 users-by-email endpoint instead of a search.
+
+## 0.1.4
+* Upgrading the versions of gem dependencies, including jwt.
+
 ## 0.1.3
 * Renamed SyncAttrWithAuth0::Adapters::ActiveRecord::Sync to be Auth0Sync to prevent collisions.
 

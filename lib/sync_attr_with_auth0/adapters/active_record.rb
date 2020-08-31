@@ -13,6 +13,7 @@ module SyncAttrWithAuth0
 
       module ClassMethods
 
+        # TODO: We should accept two arrays of fields: user_metadata (for user-managed settings) and app_metadata (for app-managed settings)
         def sync_attr_with_auth0(*fields)
           options = fields.extract_options!
 
