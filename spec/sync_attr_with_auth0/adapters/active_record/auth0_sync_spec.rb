@@ -545,6 +545,7 @@ module SyncAttrWithAuth0
 
 
         describe "#auth0_update_params" do
+          let(:mock_user_uid) { "auth0|foo@email.com" }
           let(:mock_user_metadata) do
             {
               'foo' => 'bar'
@@ -648,10 +649,27 @@ module SyncAttrWithAuth0
                 # Test performed by after block.
               end
             end
+
+            context "when the user is not on a database connection strategy" do
+              let(:mock_user_uid) { "google-apps|foo@email.com" }
+
+              let(:expected_response) do
+                {
+                  'app_metadata' => { 'bing' => 'jazz' },
+                  'user_metadata' => { 'foo' => 'bar' },
+                  'email' => 'foo@email.com',
+                  'verify_email' => true
+                }
+              end
+
+              it "return the params without the name attributes" do
+                # Test performed by after block.
+              end
+            end
           end
 
           after do
-            expect(subject.auth0_update_params).to eq(expected_response)
+            expect(subject.auth0_update_params(mock_user_uid)).to eq(expected_response)
           end
         end # auth0_update_params
 

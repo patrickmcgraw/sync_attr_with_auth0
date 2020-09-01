@@ -105,10 +105,8 @@ module SyncAttrWithAuth0
         def update_in_auth0(user_uid)
           return unless user_uid
 
-          params = auth0_update_params
-
           begin
-            response = SyncAttrWithAuth0::Auth0.patch_user(user_uid, params, config: auth0_sync_configuration)
+            response = SyncAttrWithAuth0::Auth0.patch_user(user_uid, auth0_update_params(user_uid), config: auth0_sync_configuration)
 
             # Update the record with the uid after_commit (in case it doesn't match what's on file).
             @auth0_uid = user_uid
@@ -125,7 +123,7 @@ module SyncAttrWithAuth0
             else
               # The uid was incorrect, so re-attempt with the new uid
               # and update the one on file.
-              response = SyncAttrWithAuth0::Auth0.patch_user(found_user['user_id'], params, config: auth0_sync_configuration)
+              response = SyncAttrWithAuth0::Auth0.patch_user(found_user['user_id'], auth0_update_params(found_user['user_id']), config: auth0_sync_configuration)
 
               # Update the record with the uid after_commit
               @auth0_uid = found_user['user_id']
@@ -171,18 +169,23 @@ module SyncAttrWithAuth0
         end # auth0_create_params
 
 
-        def auth0_update_params
+        def auth0_update_params(user_uid)
           user_metadata = auth0_user_metadata
           app_metadata = auth0_app_metadata
+          is_auth0_connection_strategy = user_uid.start_with?("auth0|")
 
           params = {
-            'name' => auth0_user_name,
-            'nickname' => auth0_user_name,
-            'given_name' => auth0_user_given_name,
-            'family_name' => auth0_user_family_name,
             'app_metadata' => app_metadata,
             'user_metadata' => user_metadata
           }
+
+          if is_auth0_connection_strategy
+            # We can update the name attributes on Auth0 connection strategy only.
+            params['name'] = auth0_user_name
+            params['nickname'] = auth0_user_name
+            params['given_name'] = auth0_user_given_name
+            params['family_name'] = auth0_user_family_name
+          end
 
           if auth0_user_saved_change_to_password?
             # The password needs to be updated.

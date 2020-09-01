@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.4
+* Fixed issue with updating a user where a user on a different strategy than the database connection can't have its name attributes updated.
+
 ## 0.2.3
 * Updated the user sync to stop storing the user name fields on app_metadata.
 * Updated the mock exception throwing to support working with newer versions of the auth0 gem.
