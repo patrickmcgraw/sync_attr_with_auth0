@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.5
+* No Changes (version bump).
+
 ## 0.2.4
 * Fixed issue with updating a user where a user on a different strategy than the database connection can't have its name attributes updated.
 
