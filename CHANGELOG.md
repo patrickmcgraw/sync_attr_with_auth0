@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+* Updated the user sync to stop storing the user name fields on app_metadata.
+* Updated the mock exception throwing to support working with newer versions of the auth0 gem.
+
 ## 0.2.2
 * Updated the versions of various gem dependencies.
 * Updated the user sync to store the user name fields directly on the user. We'll remove them from the app_metadata in a future version.

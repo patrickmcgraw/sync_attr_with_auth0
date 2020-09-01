@@ -335,7 +335,7 @@ module SyncAttrWithAuth0
           end
 
           context "when the user is not found in auth0" do
-            before { expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('param uid', mock_params, config: mock_config).and_raise(::Auth0::NotFound) }
+            before { expect(SyncAttrWithAuth0::Auth0).to receive(:patch_user).with('param uid', mock_params, config: mock_config).and_raise(::Auth0::NotFound, "User not found") }
 
             context "when a user is found in auth0 with a matching email" do
               let(:mock_found_user) do

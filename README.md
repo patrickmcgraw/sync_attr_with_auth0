@@ -5,6 +5,9 @@ Synchronize attributes on a local ActiveRecord user model with the user metadata
 
 This gem will validate the email is unique on auth0, create the user on auth0, as well as keep the information you select up-to-date with auth0.
 
+## Important info regarding v0.2.3
+We're removing the user name fields from the app_metadata hash.  Please make sure anything reading the user name, nickname, given_name, and family_name are reading them off the root user profile data instead.
+
 ## Important info regarding v0.2.2
 We're migrating user name information off of the app_metadata hash, and instead setting them directly on the user (which is what it should have been doing). Make sure anything reading the user name, nickname, given_name, and family_name is no longer reading them from app_metadata.  For backwards compatibility, we're still syncing there with this version, but a future version will have it removed.
 

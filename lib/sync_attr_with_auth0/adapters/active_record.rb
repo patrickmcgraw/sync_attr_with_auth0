@@ -160,12 +160,8 @@ module SyncAttrWithAuth0
 
 
       def auth0_app_metadata
-        return {
-          'name' => auth0_user_name,
-          'nickname' => auth0_user_name,
-          'given_name' => auth0_user_given_name,
-          'family_name' => auth0_user_family_name
-        }
+        # TODO: Source this from a separate attribute list.
+        return {}
       end # auth0_app_metadata
 
 
