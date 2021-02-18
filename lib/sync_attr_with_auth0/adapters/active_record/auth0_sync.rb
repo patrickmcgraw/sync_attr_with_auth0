@@ -94,7 +94,7 @@ module SyncAttrWithAuth0
         def create_in_auth0
           params = auth0_create_params
 
-          response = SyncAttrWithAuth0::Auth0.create_user(auth0_user_name, params, config: auth0_sync_configuration)
+          response = SyncAttrWithAuth0::Auth0.create_user(params, config: auth0_sync_configuration)
 
           # Update the record with the uid and picture after_commit
           @auth0_uid = response['user_id']

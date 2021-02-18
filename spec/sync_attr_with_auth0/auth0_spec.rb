@@ -19,8 +19,8 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
     before do
       expect(Time).to receive(:now).and_return(1)
       expect(UUIDTools::UUID).to receive(:random_create).and_return('uuid')
-      expect(JWT).to receive(:base64url_decode).with('global client secret').and_return('decoded global client secret')
-      expect(JWT).to receive(:encode).with(mock_payload, 'decoded global client secret').and_return('jwt string')
+      expect(JWT::Base64).to receive(:url_decode).with('global client secret').and_return('decoded global client secret')
+      expect(JWT).to receive(:encode).with(mock_payload, 'decoded global client secret', 'HS256', { typ: 'JWT' }).and_return('jwt string')
     end
 
     it "should create and return a java web token for auth0" do
@@ -160,7 +160,7 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
   describe "::create_user" do
     let(:name) { 'John Doe' }
     let(:params) do
-      {}
+      { 'connection' => 'Username-Password-Authentication' }
     end
     let(:mock_config) do
       double(
@@ -170,7 +170,7 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
           auth0_global_client_secret: 'global client secret',
           auth0_client_id: 'client id',
           auth0_client_secret: 'client secret',
-          auth0_namespace: 'namespace'
+          auth0_namespace: 'namespace',
         }
       )
     end
@@ -179,11 +179,11 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
     before do
       allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
       allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
-      allow(mock_client).to receive(:create_user).with('John Doe', {}).and_return('response!')
+      allow(mock_client).to receive(:create_user).with('Username-Password-Authentication', {}).and_return('response!')
     end
 
     it "should return the response from posting to auth0" do
-      expect(SyncAttrWithAuth0::Auth0.create_user(name, params)).to eq('response!')
+      expect(SyncAttrWithAuth0::Auth0.create_user(params)).to eq('response!')
     end
   end # ::create_user
 

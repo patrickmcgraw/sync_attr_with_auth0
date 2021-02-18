@@ -17,7 +17,7 @@ module SyncAttrWithAuth0
         'jti' => UUIDTools::UUID.random_create.to_s
       }
 
-      jwt = JWT.encode(payload, JWT.base64url_decode(global_client_secret))
+      jwt = JWT.encode(payload, JWT::Base64.url_decode(global_client_secret), 'HS256', { typ: 'JWT' })
 
       return jwt
     end # ::create_auth0_jwt
@@ -86,10 +86,9 @@ module SyncAttrWithAuth0
     end # ::find_users_by_email
 
 
-    def self.create_user(name, params, config: SyncAttrWithAuth0.configuration)
+    def self.create_user(params, config: SyncAttrWithAuth0.configuration)
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(config: config)
-
-      return auth0.create_user(name, params)
+      return auth0.create_user(params.delete('connection'), params)
     end # ::create_user
 
 

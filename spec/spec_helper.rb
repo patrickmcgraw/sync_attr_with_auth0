@@ -26,6 +26,7 @@ ENV['AUTH0_GLOBAL_CLIENT_SECRET'] = 'auth0_global_client_secret_456'
 require 'rest_client'
 require 'rails'
 require 'active_record'
+require 'active_support/all'
 Time.zone = 'UTC'
 
 # mock_models = Dir.glob( File.join(File.dirname(__FILE__), 'mock_models/**') )

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.6
+* Allow newer Auth0 library and jwt library
+
 ## 0.2.5
 * No Changes (version bump).
 
