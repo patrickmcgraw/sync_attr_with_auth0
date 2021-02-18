@@ -179,11 +179,11 @@ RSpec.describe SyncAttrWithAuth0::Auth0 do
     before do
       allow(SyncAttrWithAuth0).to receive(:configuration).and_return(mock_config)
       allow(SyncAttrWithAuth0::Auth0).to receive(:create_auth0_client).with(config: mock_config).and_return(mock_client)
-      allow(mock_client).to receive(:create_user).with('Username-Password-Authentication', params).and_return('response!')
+      allow(mock_client).to receive(:create_user).with('Username-Password-Authentication', {}).and_return('response!')
     end
 
     it "should return the response from posting to auth0" do
-      expect(SyncAttrWithAuth0::Auth0.create_user(name, params)).to eq('response!')
+      expect(SyncAttrWithAuth0::Auth0.create_user(params)).to eq('response!')
     end
   end # ::create_user
 

@@ -298,7 +298,7 @@ module SyncAttrWithAuth0
           end
 
           it "should create the user in Auth0 and setup the uid for update locally" do
-            expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with('John Doe', mock_params, config: mock_config).and_return(mock_response)
+            expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with(mock_params, config: mock_config).and_return(mock_response)
 
             subject.create_in_auth0
 
@@ -359,7 +359,7 @@ module SyncAttrWithAuth0
               before { allow(subject).to receive(:users_in_auth0_with_matching_email).and_return([]) }
 
               it "should create the user in Auth0 instead" do
-                expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with('John Doe', mock_params, config: mock_config).and_return(mock_response)
+                expect(SyncAttrWithAuth0::Auth0).to receive(:create_user).with(mock_params, config: mock_config).and_return(mock_response)
 
                 subject.update_in_auth0(user_uid)
 

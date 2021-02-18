@@ -86,9 +86,9 @@ module SyncAttrWithAuth0
     end # ::find_users_by_email
 
 
-    def self.create_user(name, params, config: SyncAttrWithAuth0.configuration)
+    def self.create_user(params, config: SyncAttrWithAuth0.configuration)
       auth0 = SyncAttrWithAuth0::Auth0.create_auth0_client(config: config)
-      return auth0.create_user(params['connection'], params)
+      return auth0.create_user(params.delete('connection'), params)
     end # ::create_user
 
 
